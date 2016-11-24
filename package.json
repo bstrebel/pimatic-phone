@@ -1,0 +1,34 @@
+{
+  "name": "pimatic-phone",
+  "description": "A generic pimatic plugin for mobile devices",
+  "author": "Bernd Strebel <b.strebel@digitec.de> (https://github.com/bstrebel/pimatic-phone)",
+  "main": "phone.coffee",
+  "files": [
+    "phone.coffee",
+    "README.md",
+    "phone-config-schema.coffee",
+    "device-config-schema.coffee",
+    "LICENSE"
+  ],
+  "version": "0.1.0",
+  "homepage": "https://github.com/bstrebel/pimatic-phone",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bstrebel/pimatic-phone.git"
+  },
+  "configSchema": "phone-config-schema.coffee",
+  "scripts": {},
+  "dependencies": {},
+  "devDependencies": {
+    "decl-api": "0.0.22",
+    "bluebird": "^3.3.4"
+  },
+  "peerDependencies": {
+    "pimatic": "~0.9.0"
+  },
+  "engines": {
+    "node": ">0.10.x",
+    "npm": ">1.1.x"
+  }
+}
