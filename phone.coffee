@@ -9,15 +9,15 @@ module.exports = (env) =>
       @debug = @config.debug || false
       deviceConfigDef = require('./device-config-schema.coffee')
 
-      @framework.deviceManager.registerDeviceClass 'PhoneDevice',
-        configDef: deviceConfigDef.PhoneDevice
-        createCallback: (config, plugin, lastState) =>
-          return new PhoneDevice(config, @, lastState)
+      @framework.deviceManager.registerDeviceClass('PhoneDevice', {
+        configDef: deviceConfigDef.PhoneDevice,
+        createCallback: (config, lastState) => new PhoneDevice(config, lastState, @)
+      })
 
-      @framework.deviceManager.registerDeviceClass 'PhoneDeviceIOS',
-        configDef: deviceConfigDef.PhoneDeviceIOS
-        createCallback: (config, plugin, lastState) =>
-          return new PhoneDeviceIOS(config, @, lastState)
+      @framework.deviceManager.registerDeviceClass('PhoneDeviceIOS', {
+        configDef: deviceConfigDef.PhoneDeviceIOS,
+        createCallback: (config, lastState) => new PhoneDeviceIOS(config, lastState, @)
+      })
 
 
   plugin = new PhonePlugin
@@ -34,6 +34,7 @@ module.exports = (env) =>
         acronym: 'UTC'
         displaySparkline: false
         hidden: true
+        discrete: true
       timeSpec:
         label: "Update time spec"
         description: "Date and time of the last location update."
@@ -42,6 +43,7 @@ module.exports = (env) =>
         acronym: 'DT'
         displaySparkline: false
         hidden: false
+        discrete: true
       locationSource:
         label: "Location source"
         description: "Source of location information: LOC, GPS, NET, TAG, SSID"
@@ -50,6 +52,7 @@ module.exports = (env) =>
         acronym: 'SRC'
         displaySparkline: false
         hidden: false
+        discrete: true
       locationTag:
         description: "Current location of the device"
         type: t.string
@@ -57,6 +60,7 @@ module.exports = (env) =>
         acronym: 'LOC'
         displaySparkline: false
         hidden: false
+        discrete: true
       latitude:
         label: "Latitude"
         description: "Latitude of device"
@@ -82,16 +86,6 @@ module.exports = (env) =>
         displaySparkline: false
         hidden: true
 
-    # attribute getter methods
-    getLocationSource: () -> Promise.resolve(@_locationSource)
-    getLocationTag: () -> Promise.resolve(@_locationTag)
-    getTimeStamp: () -> Promise.resolve(@_timeStamp)
-    getTimeSpec: () -> Promise.resolve(@_timeStamp.format(@timeformat))
-    getSerial: () -> Promise.resolve(@_serial)
-    getLatitude: () -> Promise.resolve(@_latitude)
-    getLongitude: () -> Promise.resolve(@_longitude)
-    getAccuracy: () -> Promise.resolve(@_accuracy)
-
     actions:
       updateLocationTag:
         description: "Update location tag of device"
@@ -108,20 +102,29 @@ module.exports = (env) =>
           updateAddress:
             type: "number"
 
-    constructor: (@config, plugin, lastState) ->
+    # attribute getter methods
+    getLocationSource: () -> Promise.resolve(@_locationSource)
+    getLocationTag: () -> Promise.resolve(@_locationTag)
+    getTimeStamp: () -> Promise.resolve(@_timeStamp)
+    getTimeSpec: () -> Promise.resolve(@_timeSpec)
+    getSerial: () -> Promise.resolve(@_serial)
+    getLatitude: () -> Promise.resolve(@_latitude)
+    getLongitude: () -> Promise.resolve(@_longitude)
+    getAccuracy: () -> Promise.resolve(@_accuracy)
 
-      # plugin configuration
-      @debug = plugin.debug || false
-      @timeformat = plugin.timeformat
-
-      # device configuration
+    constructor: (@config, lastState, plugin) ->
+      # phone device configuration
       @id = @config.id
       @name = @config.name
-      @serial = @config.serial
+
+      # get phone plugin settings
+      @debug = plugin.config.debug || false
+      @timeformat = plugin.config.timeformat
 
       # device attribute initialization
+      @_serial = @config.serial
       @_locationTag = lastState?.locationTag?.value or "UNKNOWN"
-      @_timeStamp = lastState?.timeStamp?.value or new Date()
+      @_timeStamp = lastState?.timeStamp?.value or @_setTimeStamp()
 
       super()
 
@@ -130,19 +133,20 @@ module.exports = (env) =>
 
 
     updateLocationTag: (tag) ->
+      @_setTimeStamp()
       @_locationSource = "TAG"
       @_locationTag = tag
 
       # TODO: check valid tags or throw error
       #       set location from location tag
 
-      env.logger.info('Update location for ' + @name + ': ' + tag)
+      env.logger.info("Update location for #{@name}: #{tag}")
       return @_emitUpdates()
 
     updateLocation: (long, lat, updateAddress) ->
-      # pimatic-location android client
-      @_locationSource = LOC
-      @_timeStamp = new Date()
+      # legacy action for pimatic-location android client
+      @_setTimeStamp()
+      @_locationSource = "LOC"
       @_latitude = lat
       @_longitude = long
       @_accuracy = 0
@@ -150,28 +154,33 @@ module.exports = (env) =>
       # TODO: calculate tag from location
       #
 
-      env.logger.debug("Received: long=#{long} lat=#{lat} from #{@name} at #{timestamp}")
+      env.logger.debug("Received: long=#{long} lat=#{lat} from #{@name} at #{@_timeStamp}")
       return @_emitUpdates()
 
-    _emitUpdates: () =>
+    _emitUpdates: () ->
       # publish the updated attributes
       @emit 'locationTag', @_locationTag
       @emit 'locationSource', @_locationSource
       @emit 'timeStamp', @_timeStamp
-      @emit 'timeSpec', @_timeStamp.format(@timeformat)
+      @emit 'timeSpec', @_timeSpec
       @emit 'latitude', @_latitude
       @emit 'longitude', @_longitude
       @emit 'accuracy', @_accuracy
       return Promise.resolve()
 
+    _setTimeStamp: () ->
+      @_timeStamp = new Date()
+      @_timeSpec = @_timeStamp.format(@timeformat)
+      return @_timeStamp
+
   class PhoneDeviceIOS extends PhoneDevice
 
-    constructor: (@config, plugin, lastState) ->
+    constructor: (@config, lastState, plugin) ->
       @iCloudUser = @config.iCloudUser
       @iCloudPass = @config.iCloudPass
       @iCloudDevice = @config.iCloudDevice
       @iCloudInterval = @config.iCloudInterval
-      super(@config, plugin, lastState)
+      super(@config, lastState, plugin)
 
     destroy: () ->
       super()
