@@ -19,7 +19,6 @@ module.exports = (env) =>
         createCallback: (config, lastState) => new PhoneDeviceIOS(config, lastState, @)
       })
 
-
   plugin = new PhonePlugin
 
 
@@ -123,14 +122,16 @@ module.exports = (env) =>
 
       # device attribute initialization
       @_serial = @config.serial
-      @_locationTag = lastState?.locationTag?.value or "UNKNOWN"
-      @_timeStamp = lastState?.timeStamp?.value or @_setTimeStamp()
+
+      if lastState != undefined
+        # maybe undef because of flush database problems on exit
+        @_locationTag = lastState.locationTag?.value or "UNKNOWN"
+        @_timeStamp = lastState.timeStamp?.value or @_setTimeStamp()
 
       super()
 
     destroy: () ->
       super()
-
 
     updateLocationTag: (tag) ->
       @_setTimeStamp()
