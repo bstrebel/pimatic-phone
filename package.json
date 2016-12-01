@@ -32,5 +32,20 @@
   "engines": {
     "node": ">0.10.x",
     "npm": ">1.1.x"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/bstrebel/pimatic-phone/issues"
+  },
+  "keywords": [
+    "pimatic",
+    "plugin",
+    "icloud",
+    "ios",
+    "android",
+    "phone",
+    "location",
+    "gps",
+    "geo"
+  ],
+  "license": "MIT"
 }
