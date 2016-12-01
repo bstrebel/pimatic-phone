@@ -19,7 +19,9 @@
   },
   "configSchema": "phone-config-schema.coffee",
   "scripts": {},
-  "dependencies": {},
+  "dependencies": {
+    "fmip": "^1.0.0"
+  },
   "devDependencies": {
     "decl-api": "0.0.22",
     "bluebird": "^3.3.4"

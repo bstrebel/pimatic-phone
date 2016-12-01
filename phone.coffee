@@ -1,6 +1,7 @@
 module.exports = (env) =>
 
   Promise = env.require 'bluebird'
+  _ = env.require 'lodash'
   t = env.require('decl-api').types
 
   class PhonePlugin extends env.plugins.Plugin
@@ -67,7 +68,7 @@ module.exports = (env) =>
         unit: "°"
         acronym: 'LAT'
         displaySparkline: false
-        hidden: true
+        hidden: false
       longitude:
         label: "Longitude"
         description: "Longitude of device"
@@ -75,7 +76,7 @@ module.exports = (env) =>
         unit: "°"
         acronym: 'LONG'
         displaySparkline: false
-        hidden: true
+        hidden: false
       accuracy:
         label: "Accuracy"
         description: "Accuracy of location data"
@@ -123,10 +124,12 @@ module.exports = (env) =>
       # device attribute initialization
       @_serial = @config.serial
 
+      ###
       if lastState != undefined
         # maybe undef because of flush database problems on exit
         @_locationTag = lastState.locationTag?.value or "UNKNOWN"
         @_timeStamp = lastState.timeStamp?.value or @_setTimeStamp()
+      ###
 
       super()
 
@@ -176,15 +179,52 @@ module.exports = (env) =>
 
   class PhoneDeviceIOS extends PhoneDevice
 
+    fmip = require 'fmip'
+
     constructor: (@config, lastState, plugin) ->
+
+      super(@config, lastState, plugin)
+
       @iCloudUser = @config.iCloudUser
       @iCloudPass = @config.iCloudPass
       @iCloudDevice = @config.iCloudDevice
       @iCloudInterval = @config.iCloudInterval
-      super(@config, lastState, plugin)
+
+      if @iCloudInterval > 0
+        if not @iCloudUser
+          env.logger.error("Missing iCloud username!")
+        else
+          if not @iCloudPass
+            env.logger.error("Missing iCloud password for #{@iCloudUser}!")
+          else
+            if not @iCloudDevice
+              env.logger.error("Missing iCloud device name for #{name}")
+            else
+              fmip.devices @iCloudUser, @iCloudPass, (error, devices) =>
+                if error?
+                  env.logger.error(error.message)
+                else
+                  if _.find(devices, 'name': @iCloudDevice)
+                    env.logger.info("Found device \"#{@iCloudDevice}\" for #{@iCloudUser}")
+                    @_updateDevice()
+                    @intervalId = setInterval( ( =>
+                      @_updateDevice()
+                    ), @iCloudInterval * 1000)
+                  else
+                    devs = []
+                    devs.push(device.name) for device in devices
+                    env.logger.error("iCloud device \"#{@iCloudDevice}\" not found in [#{devs.join(', ')}]")
 
     destroy: () ->
+      clearInterval @intervalId if @intervalId?
       super()
 
+    _updateDevice: () ->
+      fmip.device @iCloudUser, @iCloudPass, @iCloudDevice, (error, device) =>
+        if error?
+          env.logger.error(error.message)
+        else
+          location = device.location
+          @updateLocation(location.longitude, location.latitude, 1)
 
   return plugin

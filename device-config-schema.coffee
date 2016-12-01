@@ -9,24 +9,24 @@ module.exports = {
         description: "Serial number of device"
         type: "string"
   PhoneDeviceIOS:
-    title: "iPhone debice configuration"
+    title: "iPhone device configuration"
     type: "object"
     extensions: ["xAttributeOptions"]
     properties:
       iCloudUser:
-        description: "iCloud User"
+        description: "iCloud user (Apple ID)"
         type: "string"
         default: ""
       iCloudPass:
-        description: "iCloud Password"
+        description: "iCloud password"
         type: "string"
         default: ""
       iCloudDevice:
-        description: "iCloud Device"
+        description: "iCloud device name"
         type: "string"
         default: ""
       iCloudInterval:
-        description: "iCloud Interval"
+        description: "iCloud poll interval (seconds)"
         type: "integer"
-        default: 60000
+        default: 60
 }
