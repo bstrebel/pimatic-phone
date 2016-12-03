@@ -127,7 +127,7 @@ module.exports = (env) =>
         hidden: true
       cell:
         label: "Cell"
-        description: "GSM Cell ID"
+        description: "Cell ID"
         type: t.string
         unit: ""
         acronym: 'CELL'
@@ -172,8 +172,8 @@ module.exports = (env) =>
             type: t.number
           source:
             type: t.string
-      updateGSM:
-        description: "Update location from GSM location"
+      updateCID:
+        description: "Update mobile cell id"
         params:
           cell: t.string
       updateSSID:
@@ -253,13 +253,11 @@ module.exports = (env) =>
       @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude})
       return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude},#{@_accuracy}")
 
-    updateGSM: (cell) ->
+    updateCID: (cell) ->
       @_setTimeStamp()
-      @_source = "GSM"
+      @_source = "CID"
       @_cell = cell
-
-      # TODO: calculate tag from GSM information
-
+      @_tag = plugin.tagFromCID(cell)
       return @_emitUpdates("Update location for #{@name}: #{@_cell}")
 
     updateSSID: (ssid) ->
