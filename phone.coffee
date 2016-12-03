@@ -223,24 +223,14 @@ module.exports = (env) =>
       # TODO: process update record
 
     updateTag: (tag) ->
-      if plugin.isValidTag(tag)
-        @_setTimeStamp()
-        @_source = "TAG"
-        @_tag = tag
-        @_type = "API"
-        location = plugin.locationFromTag(@_tag)
-        if location?.gps?
-          @_latitude = location.gps.latitude
-          @_longitude = location.gps.longitude
-        else
-          @_latitude = 0
-          @_longitude = 0
-
-        return @_emitUpdates("Update location for #{@name}: TAG:#{@_tag}")
-
-      env.logger.error("Ignoring update:  TAG:#{tag}")
-      return false
-      # throw new Error("Ignoring update:  TAG:#{tag}")
+      @_setTimeStamp()
+      @_source = "TAG"
+      @_tag = tag
+      @_type = "API"
+      location = plugin.locationFromTag(@_tag)
+      @_latitude = location?.gps?.latitude or 0
+      @_longitude = location?.gps?.longitude or 0
+      return @_emitUpdates("Update location for #{@name}: TAG:#{@_tag}")
 
     updateGPS: (latitude, longitude, accuracy, type) ->
       @_setTimeStamp()
@@ -257,7 +247,11 @@ module.exports = (env) =>
       @_setTimeStamp()
       @_source = "CID"
       @_cell = cell
+      @_type = "CID"
       @_tag = plugin.tagFromCID(cell)
+      location = plugin.locationFromTag(@_tag)
+      @_latitude = location?.gps?.latitude or 0
+      @_longitude = location?.gps?.longitude or 0
       return @_emitUpdates("Update location for #{@name}: #{@_cell}")
 
     updateSSID: (ssid) ->
@@ -267,12 +261,9 @@ module.exports = (env) =>
       @_type = ssid
       @_tag = plugin.tagFromSSID(ssid)
       location = plugin.locationFromTag(@_tag)
-      if location?.gps?
-        @_latitude = location.gps.latitude
-        @_longitude = location.gps.longitude
-      else
-        @_latitude = 0
-        @_longitude = 0
+      location = plugin.locationFromTag(@_tag)
+      @_latitude = location?.gps?.latitude or 0
+      @_longitude = location?.gps?.longitude or 0
       return @_emitUpdates("Update location for #{@name}: SSID:#{@_ssid}")
 
     updateLocation: (long, lat, updateAddress) ->
