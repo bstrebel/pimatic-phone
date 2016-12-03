@@ -4,6 +4,8 @@ module.exports = (env) =>
   _ = env.require 'lodash'
   t = env.require('decl-api').types
 
+  geolib = require 'geolib'
+
   class PhonePlugin extends env.plugins.Plugin
 
     init: (app, @framework, @config) =>
@@ -19,6 +21,36 @@ module.exports = (env) =>
         configDef: deviceConfigDef.PhoneDeviceIOS,
         createCallback: (config, lastState) => new PhoneDeviceIOS(config, lastState, @)
       })
+
+    tagFromGPS: (position) =>
+      if position?
+        for location in @config.locations
+          if location.gpss?
+            for gps in location.gpss
+              try
+                if geolib.isPointInCircle(position, gps, gps.radius)
+                  return location.name
+              catch error
+                env.logger.error(error.message)
+      return "unknown"
+
+    tagFromSSID: (ssid) =>
+      if ssid?
+        for location in @config.locations
+          if location.ssids?
+            if location.ssids.indexOf(ssid) > -1
+              return location.name
+      return "unknown"
+
+    tagFromCID: (cid) =>
+      if cid?
+        for location in @config.locations
+          if location.cids?
+            if location.cids.indexOf(cid) > -1
+              return location.name
+      return "unknown"
+
+
 
   plugin = new PhonePlugin
 
@@ -44,16 +76,16 @@ module.exports = (env) =>
         displaySparkline: false
         hidden: false
         discrete: true
-      locationSource:
+      source:
         label: "Location source"
-        description: "Source of location information: LOC, GPS, NET, TAG, SSID"
+        description: "Source of location information: LOC, GPS, NET, TAG, SSID, ..."
         type: t.string
         unit: ""
         acronym: 'SRC'
         displaySparkline: false
         hidden: false
         discrete: true
-      locationTag:
+      tag:
         description: "Current location of the device"
         type: t.string
         unit: ""
@@ -61,10 +93,18 @@ module.exports = (env) =>
         displaySparkline: false
         hidden: false
         discrete: true
+      type:
+        label: "Type"
+        description: "Type of position data"
+        type: t.string
+        unit: ""
+        acronym: 'TYP'
+        displaySparkline: false
+        hidden: false
       latitude:
         label: "Latitude"
         description: "Latitude of device"
-        type: "number"
+        type: t.number
         unit: "°"
         acronym: 'LAT'
         displaySparkline: false
@@ -72,7 +112,7 @@ module.exports = (env) =>
       longitude:
         label: "Longitude"
         description: "Longitude of device"
-        type: "number"
+        type: t.number
         unit: "°"
         acronym: 'LONG'
         displaySparkline: false
@@ -80,37 +120,80 @@ module.exports = (env) =>
       accuracy:
         label: "Accuracy"
         description: "Accuracy of location data"
-        type: "number"
-        unit: "°"
-        acronym: 'LONG'
+        type: t.number
+        unit: "m"
+        acronym: 'ACC'
+        displaySparkline: false
+        hidden: true
+      cell:
+        label: "Cell"
+        description: "GSM Cell ID"
+        type: t.string
+        unit: ""
+        acronym: 'CELL'
+        displaySparkline: false
+        hidden: true
+      ssid:
+        label: "SSID"
+        description: "WLAN SSID"
+        type: t.string
+        unit: ""
+        acronym: 'SSID'
         displaySparkline: false
         hidden: true
 
     actions:
-      updateLocationTag:
+      update:
+        decription: "Variable update record"
+        params:
+          record:
+            type: t.string
+      updateTag:
         description: "Update location tag of device"
         params:
           tag:
-            type: "string"
+            type: t.string
+      updateGPS:
+        description: "Update geo location values"
+        params:
+          latitude:
+            type: t.number
+          longitude:
+            type: t.number
+          accuracy:
+            type: t.number
+          source:
+            type: t.string
+      updateGSM:
+        description: "Update location from GSM location"
+        params:
+          cell: t.string
+      updateSSID:
+        description: "Update location from WLAN connection"
+        params:
+          ssid: t.string
       updateLocation:
-        description: "Updates GPS location of the device."
+        description: "Legacy: pimatic-location Android app"
         params:
           long:
-            type: "number"
+            type: t.number
           lat:
-            type: "number"
+            type: t.number
           updateAddress:
-            type: "number"
+            type: t.number
 
     # attribute getter methods
-    getLocationSource: () -> Promise.resolve(@_locationSource)
-    getLocationTag: () -> Promise.resolve(@_locationTag)
+    getSource: () -> Promise.resolve(@_source)
+    getTag: () -> Promise.resolve(@_tag)
     getTimeStamp: () -> Promise.resolve(@_timeStamp)
     getTimeSpec: () -> Promise.resolve(@_timeSpec)
     getSerial: () -> Promise.resolve(@_serial)
     getLatitude: () -> Promise.resolve(@_latitude)
     getLongitude: () -> Promise.resolve(@_longitude)
     getAccuracy: () -> Promise.resolve(@_accuracy)
+    getType: () -> Promise.resolve(@_type)
+    getCell: () -> Promise.resolve(@_cell)
+    getSsid: () -> Promise.resolve(@_ssid)
 
     constructor: (@config, lastState, plugin) ->
       # phone device configuration
@@ -127,7 +210,7 @@ module.exports = (env) =>
       ###
       if lastState != undefined
         # maybe undef because of flush database problems on exit
-        @_locationTag = lastState.locationTag?.value or "UNKNOWN"
+        @_tag = lastState.tag?.value or "UNKNOWN"
         @_timeStamp = lastState.timeStamp?.value or @_setTimeStamp()
       ###
 
@@ -136,40 +219,77 @@ module.exports = (env) =>
     destroy: () ->
       super()
 
-    updateLocationTag: (tag) ->
+    update: (record) ->
       @_setTimeStamp()
-      @_locationSource = "TAG"
-      @_locationTag = tag
+
+      # TODO: process update record
+
+
+    updateTag: (tag) ->
+      @_setTimeStamp()
+      @_source = "TAG"
+      @_tag = tag
 
       # TODO: check valid tags or throw error
-      #       set location from location tag
 
-      env.logger.info("Update location for #{@name}: #{tag}")
-      return @_emitUpdates()
+      return @_emitUpdates("Update location for #{@name}: TAG:#{@_tag}")
+
+    updateGPS: (latitude, longitude, accuracy, type) ->
+      @_setTimeStamp()
+      @_source = "GPS"
+      @_latitude = latitude
+      @_longitude = longitude
+      @_accuracy = accuracy
+      @_type = type
+      @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude})
+      return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude},#{@_accuracy}")
+
+    updateGSM: (cell) ->
+      @_setTimeStamp()
+      @_source = "GSM"
+      @_cell = cell
+
+      # TODO: calculate tag from GSM information
+
+      return @_emitUpdates("Update location for #{@name}: #{@_cell}")
+
+    updateSSID: (ssid) ->
+      @_setTimeStamp()
+      @_source = "SSID"
+      @_ssid = ssid
+
+      # TODO: calculate tag from SSID
+
+      return @_emitUpdates("Update location for #{@name}: SSID:#{@_ssid}")
 
     updateLocation: (long, lat, updateAddress) ->
       # legacy action for pimatic-location android client
       @_setTimeStamp()
-      @_locationSource = "LOC"
+      @_source = "LOC"
       @_latitude = lat
       @_longitude = long
       @_accuracy = 0
 
-      # TODO: calculate tag from location
+      # TODO: calculate tag from position
       #
 
-      env.logger.debug("Received: long=#{long} lat=#{lat} from #{@name} at #{@_timeStamp}")
-      return @_emitUpdates()
+      return @_emitUpdates("Received: long=#{@_longitude} lat=#{@_latitude} from #{@name} at #{@_timeStamp}")
 
-    _emitUpdates: () ->
+    _emitUpdates: (logMsg) ->
+      env.logger.debug(logMsg)
+
       # publish the updated attributes
-      @emit 'locationTag', @_locationTag
-      @emit 'locationSource', @_locationSource
+      @emit 'tag', @_tag
+      @emit 'source', @_source
       @emit 'timeStamp', @_timeStamp
       @emit 'timeSpec', @_timeSpec
       @emit 'latitude', @_latitude
       @emit 'longitude', @_longitude
       @emit 'accuracy', @_accuracy
+      @emit 'type', @_type
+      @emit 'cell', @_cell
+      @emit 'ssid', @_ssid
+
       return Promise.resolve()
 
     _setTimeStamp: () ->
@@ -225,6 +345,6 @@ module.exports = (env) =>
           env.logger.error(error.message)
         else
           location = device.location
-          @updateLocation(location.longitude, location.latitude, 1)
+          @updateGPS(location.latitude, location.longitude, location.horizontalAccuracy, location.positionType)
 
   return plugin

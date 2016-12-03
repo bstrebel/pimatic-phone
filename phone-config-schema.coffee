@@ -21,13 +21,9 @@ module.exports = {
           name:
             description: "Name of the location map entry"
             type: "string"
-          tags:
-            description: "Location tags"
-            type: "array"
-            default: []
-            items:
-              description: "Tag item"
-              type: "string"
+          tag:
+            description: "Location tag"
+            type: "string"
           ssids:
             description: "WiFi SSIDs"
             type: "array"
@@ -43,38 +39,21 @@ module.exports = {
               description: "GPS entry"
               type: "object"
               properties:
-                lat:
+                latitude:
                   description: "Latitude"
                   type: "number"
-                long:
+                longitude:
                   description: "Longitude"
                   type: "number"
                 radius:
                   description: "Radius (meter)"
                   type: "number"
                   unit: "m"
-          gsm:
-            description: "GSM phone cell"
-            type: "object"
-            properties:
-              mnc:
-                description: "Mobile network code"
-                type: "string"
-              mcc:
-                description: "Mobile country code"
-                type: "string"
-              cids:
-                description: "Cell tower IDs"
-                type: "array"
-                default: []
-                items:
-                  description: "Location area code and cell ID"
-                  type: "object"
-                  properties:
-                    lac:
-                      description: "Local area code"
-                      type: "string"
-                    cid:
-                      description: "Cell IDs"
-                      type: "string"
+          cids:
+            description: "Cell tower IDs"
+            type: "array"
+            default: []
+            items:
+              description: "Cell ID"
+              type: "string"
 }

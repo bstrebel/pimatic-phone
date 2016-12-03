@@ -20,7 +20,8 @@
   "configSchema": "phone-config-schema.coffee",
   "scripts": {},
   "dependencies": {
-    "fmip": "^1.0.0"
+    "fmip": "^1.0.0",
+    "geolib": "^2.0.22"
   },
   "devDependencies": {
     "decl-api": "0.0.22",
