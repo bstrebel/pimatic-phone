@@ -141,6 +141,14 @@ module.exports = (env) =>
         acronym: 'SSID'
         displaySparkline: false
         hidden: true
+      gps:
+        label: "GPS"
+        description: "GPS"
+        type: t.string
+        unit: ""
+        acronym: 'GPS'
+        displaySparkline: false
+        hidden: true
 
     actions:
       update:
@@ -194,6 +202,7 @@ module.exports = (env) =>
     getType: () -> Promise.resolve(@_type)
     getCell: () -> Promise.resolve(@_cell)
     getSsid: () -> Promise.resolve(@_ssid)
+    getGps: () -> Promise.resolve({"latitude": @_latitude, "longitude": @_longitude}.toString())
 
     constructor: (@config, lastState, plugin) ->
       # phone device configuration
