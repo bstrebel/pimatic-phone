@@ -50,6 +50,10 @@ module.exports = (env) =>
               return location.name
       return "unknown"
 
+    isValidTag: (tag) =>
+      if tag?
+        return _.find(@config.locations, 'tag': tag)?
+      return false
 
 
   plugin = new PhonePlugin
@@ -230,18 +234,19 @@ module.exports = (env) =>
 
     update: (record) ->
       @_setTimeStamp()
-
       # TODO: process update record
 
 
     updateTag: (tag) ->
-      @_setTimeStamp()
-      @_source = "TAG"
-      @_tag = tag
+      if tag?
+        if plugin.isValidTag(tag)
+          @_setTimeStamp()
+          @_source = "TAG"
+          @_tag = tag
+          return @_emitUpdates("Update location for #{@name}: TAG:#{@_tag}")
+        else
+          env.logger.warn("Ignoring update:  TAG:#{tag}")
 
-      # TODO: check valid tags or throw error
-
-      return @_emitUpdates("Update location for #{@name}: TAG:#{@_tag}")
 
     updateGPS: (latitude, longitude, accuracy, type) ->
       @_setTimeStamp()
@@ -264,9 +269,7 @@ module.exports = (env) =>
       @_setTimeStamp()
       @_source = "SSID"
       @_ssid = ssid
-
-      # TODO: calculate tag from SSID
-
+      @_tag = plugin.tagFromSSID(ssid)
       return @_emitUpdates("Update location for #{@name}: SSID:#{@_ssid}")
 
     updateLocation: (long, lat, updateAddress) ->
@@ -276,11 +279,8 @@ module.exports = (env) =>
       @_latitude = lat
       @_longitude = long
       @_accuracy = 0
-
-      # TODO: calculate tag from position
-      #
-
-      return @_emitUpdates("Received: long=#{@_longitude} lat=#{@_latitude} from #{@name} at #{@_timeStamp}")
+      @_tag = plugin.tagFromGPS({"latitude": lat, "longitude": long})
+      return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude}")
 
     _emitUpdates: (logMsg) ->
       env.logger.debug(logMsg)
