@@ -31,24 +31,20 @@ module.exports = {
             items:
               description: "WiFi SSID"
               type: "string"
-          gpss:
-            description: "GPS entries"
-            type: "array"
-            default: []
-            items:
-              description: "GPS entry"
-              type: "object"
-              properties:
-                latitude:
-                  description: "Latitude"
-                  type: "number"
-                longitude:
-                  description: "Longitude"
-                  type: "number"
-                radius:
-                  description: "Radius (meter)"
-                  type: "number"
-                  unit: "m"
+          gps:
+            description: "GPS entry"
+            type: "object"
+            properties:
+              latitude:
+                description: "Latitude"
+                type: "number"
+              longitude:
+                description: "Longitude"
+                type: "number"
+              radius:
+                description: "Radius (meter)"
+                type: "number"
+                unit: "m"
           cids:
             description: "Cell tower IDs"
             type: "array"

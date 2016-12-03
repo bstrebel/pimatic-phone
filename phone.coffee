@@ -55,6 +55,9 @@ module.exports = (env) =>
         return _.find(@config.locations, 'tag': tag)?
       return false
 
+    locationFromTag: (tag) =>
+      if tag?
+        return _.find(@config.locations, 'tag': tag)
 
   plugin = new PhonePlugin
 
@@ -62,15 +65,6 @@ module.exports = (env) =>
   class PhoneDevice extends env.devices.Device
 
     attributes:
-      timeStamp:
-        label: "Update timestamp"
-        description: "UTC Timestamp (mseconds) of the last location update."
-        type: t.number
-        unit: "ms"
-        acronym: 'UTC'
-        displaySparkline: false
-        hidden: true
-        discrete: true
       timeSpec:
         label: "Update time spec"
         description: "Date and time of the last location update."
@@ -197,7 +191,6 @@ module.exports = (env) =>
     # attribute getter methods
     getSource: () -> Promise.resolve(@_source)
     getTag: () -> Promise.resolve(@_tag)
-    getTimeStamp: () -> Promise.resolve(@_timeStamp)
     getTimeSpec: () -> Promise.resolve(@_timeSpec)
     getSerial: () -> Promise.resolve(@_serial)
     getLatitude: () -> Promise.resolve(@_latitude)
@@ -206,7 +199,7 @@ module.exports = (env) =>
     getType: () -> Promise.resolve(@_type)
     getCell: () -> Promise.resolve(@_cell)
     getSsid: () -> Promise.resolve(@_ssid)
-    getGps: () -> Promise.resolve({"latitude": @_latitude, "longitude": @_longitude}.toString())
+    getGps: () -> Promise.resolve(@_gps)
 
     constructor: (@config, lastState, plugin) ->
       # phone device configuration
@@ -220,13 +213,6 @@ module.exports = (env) =>
       # device attribute initialization
       @_serial = @config.serial
 
-      ###
-      if lastState != undefined
-        # maybe undef because of flush database problems on exit
-        @_tag = lastState.tag?.value or "UNKNOWN"
-        @_timeStamp = lastState.timeStamp?.value or @_setTimeStamp()
-      ###
-
       super()
 
     destroy: () ->
@@ -236,17 +222,25 @@ module.exports = (env) =>
       @_setTimeStamp()
       # TODO: process update record
 
-
     updateTag: (tag) ->
-      if tag?
-        if plugin.isValidTag(tag)
-          @_setTimeStamp()
-          @_source = "TAG"
-          @_tag = tag
-          return @_emitUpdates("Update location for #{@name}: TAG:#{@_tag}")
+      if plugin.isValidTag(tag)
+        @_setTimeStamp()
+        @_source = "TAG"
+        @_tag = tag
+        @_type = "API"
+        location = plugin.locationFromTag(@_tag)
+        if location?.gps?
+          @_latitude = location.gps.latitude
+          @_longitude = location.gps.longitude
         else
-          env.logger.warn("Ignoring update:  TAG:#{tag}")
+          @_latitude = 0
+          @_longitude = 0
 
+        return @_emitUpdates("Update location for #{@name}: TAG:#{@_tag}")
+
+      env.logger.error("Ignoring update:  TAG:#{tag}")
+      return false
+      # throw new Error("Ignoring update:  TAG:#{tag}")
 
     updateGPS: (latitude, longitude, accuracy, type) ->
       @_setTimeStamp()
@@ -255,6 +249,7 @@ module.exports = (env) =>
       @_longitude = longitude
       @_accuracy = accuracy
       @_type = type
+      @_gps = JSON.stringify({"latitude": @_latitude, "longitude": @_longitude})
       @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude})
       return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude},#{@_accuracy}")
 
@@ -269,7 +264,15 @@ module.exports = (env) =>
       @_setTimeStamp()
       @_source = "SSID"
       @_ssid = ssid
+      @_type = ssid
       @_tag = plugin.tagFromSSID(ssid)
+      location = plugin.locationFromTag(@_tag)
+      if location?.gps?
+        @_latitude = location.gps.latitude
+        @_longitude = location.gps.longitude
+      else
+        @_latitude = 0
+        @_longitude = 0
       return @_emitUpdates("Update location for #{@name}: SSID:#{@_ssid}")
 
     updateLocation: (long, lat, updateAddress) ->
@@ -279,30 +282,23 @@ module.exports = (env) =>
       @_latitude = lat
       @_longitude = long
       @_accuracy = 0
+      @_gps = JSON.stringify({"latitude": @_latitude, "longitude": @_longitude})
       @_tag = plugin.tagFromGPS({"latitude": lat, "longitude": long})
       return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude}")
 
     _emitUpdates: (logMsg) ->
       env.logger.debug(logMsg)
-
-      # publish the updated attributes
-      @emit 'tag', @_tag
-      @emit 'source', @_source
-      @emit 'timeStamp', @_timeStamp
-      @emit 'timeSpec', @_timeSpec
-      @emit 'latitude', @_latitude
-      @emit 'longitude', @_longitude
-      @emit 'accuracy', @_accuracy
-      @emit 'type', @_type
-      @emit 'cell', @_cell
-      @emit 'ssid', @_ssid
-
+      for key, value of @.attributes
+        @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
       return Promise.resolve()
 
+    _clearUpdates: () ->
+      for key, value of @.attributes
+        @['_'+ key] = null if key isnt '__proto__'
+
     _setTimeStamp: () ->
-      @_timeStamp = new Date()
-      @_timeSpec = @_timeStamp.format(@timeformat)
-      return @_timeStamp
+      @_clearUpdates()
+      @_timeSpec = new Date().format(@timeformat)
 
   class PhoneDeviceIOS extends PhoneDevice
 
