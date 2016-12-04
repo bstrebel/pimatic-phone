@@ -22,13 +22,14 @@ module.exports = (env) =>
         createCallback: (config, lastState) => new PhoneDeviceIOS(config, lastState, @)
       })
 
-    tagFromGPS: (position) =>
+    tagFromGPS: (position, accuracy) =>
       if position?
         for location in @config.locations
           if location.gps?
             gps = location.gps
+            radius = if accuracy > 0 then accuracy else gps.radius
             try
-              if geolib.isPointInCircle(position, gps, gps.radius)
+              if geolib.isPointInCircle(position, gps, radius)
                 return location.tag
             catch error
               env.logger.error(error.message)
@@ -207,8 +208,13 @@ module.exports = (env) =>
       @name = @config.name
 
       # get phone plugin settings
-      @debug = plugin.config.debug || false
+      # @debug = plugin.config.debug || false
       @timeformat = plugin.config.timeformat
+
+      # use device specific debug flag
+      # to allow changes during runtime
+      @debug = @config.debug || false
+      @accuracy = @config.accuracy
 
       # device attribute initialization
       @_serial = @config.serial
@@ -239,8 +245,8 @@ module.exports = (env) =>
       @_longitude = longitude
       @_accuracy = accuracy
       @_type = type
-      @_gps = JSON.stringify({"latitude": @_latitude, "longitude": @_longitude})
-      @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude})
+      @_gps = JSON.stringify({"latitude": @_latitude, "longitude": @_longitude, "accuracy": @_accuracy})
+      @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude}, @accuracy)
       return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude},#{@_accuracy}")
 
     updateCID: (cell) ->

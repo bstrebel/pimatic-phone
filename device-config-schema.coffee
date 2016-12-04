@@ -8,6 +8,14 @@ module.exports = {
       serial:
         description: "Serial number of device"
         type: "string"
+      debug:
+        description: "Enable debug output"
+        type: "boolean"
+        default: false
+      accuracy:
+        description: "Radius (m) for GPS mapping"
+        type: "number"
+        default: 250
   PhoneDeviceIOS:
     title: "iPhone device configuration"
     type: "object"
@@ -29,4 +37,12 @@ module.exports = {
         description: "iCloud poll interval (seconds)"
         type: "integer"
         default: 60
+      debug:
+        description: "Enable debug output"
+        type: "boolean"
+        default: false
+      accuracy:
+        description: "Radius (m) for GPS mapping"
+        type: "number"
+        default: 250
 }
