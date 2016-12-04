@@ -10,7 +10,7 @@
     "device-config-schema.coffee",
     "LICENSE"
   ],
-  "version": "0.1.4",
+  "version": "0.1.5",
   "homepage": "https://github.com/bstrebel/pimatic-phone",
   "private": false,
   "repository": {
@@ -20,7 +20,7 @@
   "configSchema": "phone-config-schema.coffee",
   "scripts": {},
   "dependencies": {
-    "fmip": "^1.0.0",
+    "fmip": "^2.0.0",
     "geolib": "^2.0.22"
   },
   "devDependencies": {
