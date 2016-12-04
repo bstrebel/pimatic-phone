@@ -342,7 +342,9 @@ module.exports = (env) =>
     _updateDevice: () ->
       fmip.device @iCloudUser, @iCloudPass, @iCloudDevice, (error, device) =>
         if error?
-          env.logger.error(error.message)
+          # don't log common iCloud request errors by default
+          level = if error.type == 'HOST' then 'debug' else 'error'
+          env.logger[level](error.message)
         else
           location = device.location
           @updateGPS(location.latitude, location.longitude, location.horizontalAccuracy, location.positionType)
