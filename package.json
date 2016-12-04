@@ -10,7 +10,7 @@
     "device-config-schema.coffee",
     "LICENSE"
   ],
-  "version": "0.1.3",
+  "version": "0.1.4",
   "homepage": "https://github.com/bstrebel/pimatic-phone",
   "private": false,
   "repository": {
@@ -40,6 +40,7 @@
   "keywords": [
     "pimatic",
     "plugin",
+    "devices",
     "icloud",
     "ios",
     "android",
