@@ -300,6 +300,7 @@ module.exports = (env) =>
       @_latitude = lat
       @_longitude = long
       @_accuracy = 0
+      @_type = "GPS"
       @_tag = plugin.tagFromGPS({"latitude": lat, "longitude": long})
       return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude}")
 
