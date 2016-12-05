@@ -92,6 +92,22 @@ module.exports = (env) =>
         displaySparkline: false
         hidden: false
         discrete: true
+      location:
+        description: "Alias for the tag attribute"
+        type: t.string
+        unit: ""
+        acronym: 'LOC'
+        displaySparkline: false
+        hidden: true
+        discrete: true
+      position:
+        description: "Alias for the tag attribute"
+        type: t.string
+        unit: ""
+        acronym: 'LOC'
+        displaySparkline: false
+        hidden: true
+        discrete: true
       type:
         label: "Type"
         description: "Type of position data"
@@ -192,6 +208,8 @@ module.exports = (env) =>
     # attribute getter methods
     getSource: () -> Promise.resolve(@_source)
     getTag: () -> Promise.resolve(@_tag)
+    getLocation: () -> Promise.resolve(@_tag)
+    getPosition: () -> Promise.resolve(@_tag)
     getTimeSpec: () -> Promise.resolve(@_timeSpec)
     getSerial: () -> Promise.resolve(@_serial)
     getLatitude: () -> Promise.resolve(@_latitude)
