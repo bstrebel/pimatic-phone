@@ -267,7 +267,6 @@ module.exports = (env) =>
       @_type = ssid
       @_tag = plugin.tagFromSSID(ssid)
       location = plugin.locationFromTag(@_tag)
-      location = plugin.locationFromTag(@_tag)
       @_latitude = location?.gps?.latitude or 0
       @_longitude = location?.gps?.longitude or 0
       return @_emitUpdates("Update location for #{@name}: SSID:#{@_ssid}")
