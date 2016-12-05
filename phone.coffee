@@ -216,6 +216,18 @@ module.exports = (env) =>
       @debug = @config.debug || false
       @accuracy = @config.accuracy
 
+      for location in plugin.config.locations
+        attributeName = "distanceTo" + location.tag
+        @addAttribute(attributeName, {
+          description: "Distance between #{@name} and #{location.tag}"
+          type: t.number
+          unit: "m"
+          acronym: 'DTL'
+          hidden: true
+        })
+        @['_'+attributeName] = null
+        @['getDistanceTo'+location.tag] = ()-> Promise.resolve(@["_"+attributeName])
+
       # device attribute initialization
       @_serial = @config.serial
 
