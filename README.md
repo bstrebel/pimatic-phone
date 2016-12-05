@@ -15,6 +15,19 @@ let you use the most suitable method (native apps, tasker jobs, GPS/GSM
 tracking, WLAN connections, etc.) to update the location of a mobile
 device.
 
+Location based rules
+--------------------
+
+No additional predicates or rule actions are provided in the moment but
+you can use dynamically generated device variables and attributes, e.g.
+
+```
+when $phone.tag gets updated and $phone_htc.tag != "Home" then turn switch_lights off
+when location of phone is equal to "Office" then log "at work"
+when $phone.distanceToHome is lower than 500 then log "almost at home"
+...
+```
+
 Plugin configuration
 --------------------
 
@@ -137,7 +150,23 @@ logging or displayed in the frontend
         displaySparkline: false
         hidden: false
         discrete: true
-      type:
+       location:
+         description: "Alias for the tag attribute"
+         type: t.string
+         unit: ""
+         acronym: 'LOC'
+         displaySparkline: false
+         hidden: true
+         discrete: true
+       position:
+         description: "Alias for the tag attribute"
+         type: t.string
+         unit: ""
+         acronym: 'LOC'
+         displaySparkline: false
+         hidden: true
+         discrete: true
+     type:
         label: "Type"
         description: "Type of position data"
         type: t.string
@@ -290,24 +319,12 @@ Available API call os of Rev. 0.1.1
 TODO: detailed description of calls and params, curl examples, tasker
 examples
 
-Rules
------
-
-No predicates or rule actions are provided in the moment. Use device
-variables and attributes directly as in
-```
-when $phone_htc.tag gets updated and $phone_htc.tag != "Home" then turn switch_lights off
-```
-
-TODO: provide more rule examples
-
-
 Roadmap
 -------
 
 * Generate HTML links to display device location in Google Maps
 * Generate HTML links to display device location in Open Street Map
-* Add distance attribute (distance between geo locations)
+* ~~Add distance attribute (distance between geo locations)~~
 * Add route attribute (routing distance road)
 * Use Google Maps and/or OSM for route calculations
 * Display current location in maps iframe (Google/OSM)

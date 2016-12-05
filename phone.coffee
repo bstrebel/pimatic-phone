@@ -208,8 +208,8 @@ module.exports = (env) =>
     # attribute getter methods
     getSource: () -> Promise.resolve(@_source)
     getTag: () -> Promise.resolve(@_tag)
-    getLocation: () -> Promise.resolve(@_tag)
-    getPosition: () -> Promise.resolve(@_tag)
+    getLocation: () -> Promise.resolve(@_location)
+    getPosition: () -> Promise.resolve(@_position)
     getTimeSpec: () -> Promise.resolve(@_timeSpec)
     getSerial: () -> Promise.resolve(@_serial)
     getLatitude: () -> Promise.resolve(@_latitude)
@@ -329,6 +329,9 @@ module.exports = (env) =>
 
     _emitUpdates: (logMsg) ->
       @_processLocation()
+      # update tag aliases
+      @_location = @_tag
+      @_position = @_tag
       env.logger.debug(logMsg)
       for key, value of @.attributes
         @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
