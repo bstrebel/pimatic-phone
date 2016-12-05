@@ -234,6 +234,7 @@ module.exports = (env) =>
       @debug = @config.debug || false
       @accuracy = @config.accuracy
 
+      # create distance attributes for every location
       for location in plugin.config.locations
         attributeName = "distanceTo" + location.tag
         @addAttribute(attributeName, {
@@ -241,7 +242,7 @@ module.exports = (env) =>
           type: t.number
           unit: "m"
           acronym: 'DTL'
-          hidden: true
+          hidden: location.tag != plugin.config.homelocation
         })
         @['_'+attributeName] = null
         @['getDistanceTo'+location.tag] = ()-> Promise.resolve(@["_"+attributeName])
@@ -263,21 +264,8 @@ module.exports = (env) =>
       @_source = "TAG"
       @_tag = tag
       @_type = "API"
-      location = plugin.locationFromTag(@_tag)
-      @_latitude = location?.gps?.latitude or 0
-      @_longitude = location?.gps?.longitude or 0
+      @_updateLocation(@_tag)
       return @_emitUpdates("Update location for #{@name}: TAG:#{@_tag}")
-
-    updateGPS: (latitude, longitude, accuracy, type) ->
-      @_setTimeStamp()
-      @_source = "GPS"
-      @_latitude = latitude
-      @_longitude = longitude
-      @_accuracy = accuracy
-      @_type = type
-      @_gps = JSON.stringify({"latitude": @_latitude, "longitude": @_longitude, "accuracy": @_accuracy})
-      @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude}, @accuracy)
-      return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude},#{@_accuracy}")
 
     updateCID: (cell) ->
       @_setTimeStamp()
@@ -285,9 +273,6 @@ module.exports = (env) =>
       @_cell = cell
       @_type = "CID"
       @_tag = plugin.tagFromCID(cell)
-      location = plugin.locationFromTag(@_tag)
-      @_latitude = location?.gps?.latitude or 0
-      @_longitude = location?.gps?.longitude or 0
       return @_emitUpdates("Update location for #{@name}: #{@_cell}")
 
     updateSSID: (ssid) ->
@@ -296,10 +281,17 @@ module.exports = (env) =>
       @_ssid = ssid
       @_type = ssid
       @_tag = plugin.tagFromSSID(ssid)
-      location = plugin.locationFromTag(@_tag)
-      @_latitude = location?.gps?.latitude or 0
-      @_longitude = location?.gps?.longitude or 0
       return @_emitUpdates("Update location for #{@name}: SSID:#{@_ssid}")
+
+    updateGPS: (latitude, longitude, accuracy, type) ->
+      @_setTimeStamp()
+      @_source = "GPS"
+      @_latitude = latitude
+      @_longitude = longitude
+      @_accuracy = accuracy
+      @_type = type
+      @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude}, @accuracy)
+      return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude},#{@_accuracy}")
 
     updateLocation: (long, lat, updateAddress) ->
       # legacy action for pimatic-location android client
@@ -308,11 +300,35 @@ module.exports = (env) =>
       @_latitude = lat
       @_longitude = long
       @_accuracy = 0
-      @_gps = JSON.stringify({"latitude": @_latitude, "longitude": @_longitude})
       @_tag = plugin.tagFromGPS({"latitude": lat, "longitude": long})
       return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude}")
 
+    _processLocation: () ->
+      # process gps location data and calculate distances
+      gps = {}
+      gps.latitude = @_latitude if @_latitude
+      gps.longitude = @_longitude if @_longitude
+      gps.accuracy = @_accuracy if @_accuracy
+      @_gps = JSON.stringify(gps)
+
+      # calculate distance for every location tag
+      for location in plugin.config.locations
+        attributeName = "_distanceTo" + location.tag
+        distance = null
+        if location.tag == @_tag
+          distance = 0
+        else
+          if location.gps?
+            try
+              distance = geolib.getDistance(gps, location.gps)
+            catch error
+              env.logger.error(error)
+
+        # update distance attribute for this location
+        @[attributeName] = distance
+
     _emitUpdates: (logMsg) ->
+      @_processLocation()
       env.logger.debug(logMsg)
       for key, value of @.attributes
         @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
@@ -323,8 +339,15 @@ module.exports = (env) =>
         @['_'+ key] = null if key isnt '__proto__'
 
     _setTimeStamp: () ->
+      # fetch update timestamp and clear local vars
       @_clearUpdates()
       @_timeSpec = new Date().format(@timeformat)
+
+    _updateLocation: (tag) ->
+      # set gps location from tag
+      location = plugin.locationFromTag(@_tag)
+      @_latitude = location?.gps?.latitude or null
+      @_longitude = location?.gps?.longitude or null
 
   class PhoneDeviceIOS extends PhoneDevice
 

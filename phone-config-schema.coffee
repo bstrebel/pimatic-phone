@@ -10,6 +10,10 @@ module.exports = {
       description: "Time format specification"
       type: "string"
       default: "YYYY-MM-DD hh:mm:ss"
+    homelocation:
+      description: "Tag of the home location"
+      type: "string"
+      default: "Home"
     locations:
       description: "Location lookup map"
       type: "array"
