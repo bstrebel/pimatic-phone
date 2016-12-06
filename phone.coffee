@@ -335,6 +335,9 @@ module.exports = (env) =>
       # update tag aliases
       @_location = @_tag
       @_position = @_tag
+      if @_latitude? and @_longitude?
+        @config.xLink = @config.xLinkTemplate.replace("{latitude}", @_latitude.toString())
+          .replace("{longitude}", @_longitude.toString())
       env.logger.debug(logMsg)
       for key, value of @.attributes
         @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?

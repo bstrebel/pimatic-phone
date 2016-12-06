@@ -3,7 +3,7 @@ module.exports = {
   PhoneDevice:
     title: "Phone device config"
     type: "object"
-    extensions: ["xAttributeOptions"]
+    extensions: ["xAttributeOptions", "xLink"]
     properties:
       serial:
         description: "Serial number of device"
@@ -16,10 +16,14 @@ module.exports = {
         description: "Radius (m) for GPS mapping"
         type: "number"
         default: 250
+      xLinkTemplate:
+        description: "URL template"
+        type: "string"
+        default: "https://www.google.com/maps?q={latitude}+{longitude}"
   PhoneDeviceIOS:
     title: "iPhone device configuration"
     type: "object"
-    extensions: ["xAttributeOptions"]
+    extensions: ["xAttributeOptions", "xLink"]
     properties:
       iCloudUser:
         description: "iCloud user (Apple ID)"
@@ -45,4 +49,8 @@ module.exports = {
         description: "Radius (m) for GPS mapping"
         type: "number"
         default: 250
+      xLinkTemplate:
+        description: "URL template"
+        type: "string"
+        default: "https://www.google.com/maps?q={latitude}+{longitude}"
 }
