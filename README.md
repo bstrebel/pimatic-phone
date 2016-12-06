@@ -28,6 +28,20 @@ when $phone.distanceToHome is lower than 500 then log "almost at home"
 ...
 ```
 
+Use xLinks to open maps for device location
+-------------------------------------------
+
+As of Rev. 0.4.0 you can define URL templates to open Google Maps or
+Open Street Map for tht current device location:
+
+```
+      xLinkTemplate:
+        description: "URL template"
+        type: "string"
+        default: "https://www.google.com/maps?q={latitude}+{longitude}"
+```
+
+
 Plugin configuration
 --------------------
 
@@ -322,8 +336,8 @@ examples
 Roadmap
 -------
 
-* Generate HTML links to display device location in Google Maps
-* Generate HTML links to display device location in Open Street Map
+* ~~Generate HTML links to display device location in Google Maps~~
+* ~~Generate HTML links to display device location in Open Street Map~~
 * Display current location in maps iframe (Google/OSM)
 * ~~Add distance attribute (distance between geo locations)~~
 * Use Google Maps and/or OSM for route calculations
