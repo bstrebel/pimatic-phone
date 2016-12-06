@@ -273,6 +273,7 @@ module.exports = (env) =>
       @_cell = cell
       @_type = "CID"
       @_tag = plugin.tagFromCID(cell)
+      @_updateLocation(@_tag)
       return @_emitUpdates("Update location for #{@name}: #{@_cell}")
 
     updateSSID: (ssid) ->
@@ -281,6 +282,7 @@ module.exports = (env) =>
       @_ssid = ssid
       @_type = ssid
       @_tag = plugin.tagFromSSID(ssid)
+      @_updateLocation(@_tag)
       return @_emitUpdates("Update location for #{@name}: SSID:#{@_ssid}")
 
     updateGPS: (latitude, longitude, accuracy, type) ->
