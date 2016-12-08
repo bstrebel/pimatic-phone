@@ -233,6 +233,7 @@ module.exports = (env) =>
       # to allow changes during runtime
       @debug = @config.debug || false
       @accuracy = @config.accuracy
+      @gpsLimit = @config.gpsLimit
 
       # create distance attributes for every location
       for location in plugin.config.locations
@@ -308,11 +309,20 @@ module.exports = (env) =>
 
     _processLocation: () ->
       # process gps location data and calculate distances
-      gps = {}
-      gps.latitude = @_latitude if @_latitude
-      gps.longitude = @_longitude if @_longitude
-      gps.accuracy = @_accuracy if @_accuracy
-      @_gps = JSON.stringify(gps)
+      @_gps_current = {}
+      @_gps_current.latitude = @_latitude if @_latitude
+      @_gps_current.longitude = @_longitude if @_longitude
+      @_gps_current.accuracy = @_accuracy if @_accuracy
+      @_gps = JSON.stringify(@_gps_current)
+
+      # calculate distance to the last position
+      @_gps_moved = null
+      if @_gps_last?
+        try
+          @_gps_moved = geolib.getDistance(@_gps_last, @_gps_current)
+        catch error
+          env.logger.error(error)
+      @_gps_last = _.clone(@_gps_current, true)
 
       # calculate distance for every location tag
       for location in plugin.config.locations
@@ -323,7 +333,7 @@ module.exports = (env) =>
         else
           if location.gps?
             try
-              distance = geolib.getDistance(gps, location.gps)
+              distance = geolib.getDistance(@_gps_current, location.gps)
             catch error
               env.logger.error(error)
 
@@ -331,16 +341,24 @@ module.exports = (env) =>
         @[attributeName] = distance
 
     _emitUpdates: (logMsg) ->
+      env.logger.debug(logMsg)
       @_processLocation()
+
       # update tag aliases
       @_location = @_tag
       @_position = @_tag
+
+      # update xLink URL
       if @_latitude? and @_longitude?
         @config.xLink = @config.xLinkTemplate.replace("{latitude}", @_latitude.toString())
           .replace("{longitude}", @_longitude.toString())
-      env.logger.debug(logMsg)
-      for key, value of @.attributes
-        @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
+
+      # emit only if tag has changed or we are significantly moving outside a known position
+      if (@_last_tag != @_tag) or (@_tag == "unknown" and (@_gps_moved > @gpsLimit))
+        for key, value of @.attributes
+          @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
+
+      @_last_tag = @_tag
       return Promise.resolve()
 
     _clearUpdates: () ->

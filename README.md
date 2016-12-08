@@ -212,6 +212,10 @@ logging or displayed in the frontend
         acronym: 'ACC'
         displaySparkline: false
         hidden: true
+      gpsLimit:
+        description: "Log new position only if significantly moved"
+        type: "number"
+        default: 250
       cell:
         label: "Cell"
         description: "Cell ID"
@@ -254,13 +258,11 @@ options according to your needs, e.g.:
         {
           "deviceId": "phone_*",
           "attributeName": "tag",
-          "type": "continuous",
           "expire": "1y"
         },
         {
           "deviceId": "phone_*",
           "attributeName": "gps",
-          "type": "continuous",
           "expire": "1y"
         }
       ],
@@ -268,6 +270,10 @@ options according to your needs, e.g.:
     },
 
 ```
+With Rev. 0.4.1 a new configuration option gpsLimit allows you to
+restrict the logging: Updates are only written to the database when the
+location tag changes or a significant movement > gpsLimit was detected
+between two updates.
 
 Device actions
 --------------
@@ -343,3 +349,17 @@ Roadmap
 * Use Google Maps and/or OSM for route calculations
 * Add route attribute (routing distance road)
 
+Changelog
+---------
+
+Rev. 0.4.1
+
+* Log location only on significant movements > gpsLimit
+
+Rev. 0.4.0
+
+* xLink to location URL
+
+Rev. 0.3.1
+
+* Stable release with dynamic distance attributes
