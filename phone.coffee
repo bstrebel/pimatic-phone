@@ -23,6 +23,7 @@ module.exports = (env) =>
       })
 
     tagFromGPS: (position, accuracy) =>
+      result = {distance: null, tag: 'unknown'}
       if position?
         for location in @config.locations
           if location.gps?
@@ -30,10 +31,12 @@ module.exports = (env) =>
             radius = if accuracy > 0 then accuracy else gps.radius
             try
               if geolib.isPointInCircle(position, gps, radius)
-                return location.tag
+                distance = geolib.getDistance(position, gps)
+                if result.distance == null or result.distance > distance
+                  result = {distance: distance, tag: location.tag}
             catch error
               env.logger.error(error.message)
-      return "unknown"
+      return result.tag
 
     tagFromSSID: (ssid) =>
       if ssid?
