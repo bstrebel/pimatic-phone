@@ -17,7 +17,6 @@ device.
 
 Location based rules
 --------------------
-
 No additional predicates or rule actions are provided in the moment but
 you can use dynamically generated device variables and attributes, e.g.
 
@@ -28,9 +27,17 @@ when $phone.distanceToHome is lower than 500 then log "almost at home"
 ...
 ```
 
+Overlapping locations
+---------------------
+As of Rev. 0.4.2 overlapping locations are supported. You can, for
+example, define a location "home" with latitude=0, longitude=0 and
+radius=250m and a location "near home" with the same gps data but a
+radius of 1000m. A distance of 200m will provide the location "home",
+500m give you "near home".
+
+
 Use xLinks to open maps for device location
 -------------------------------------------
-
 As of Rev. 0.4.0 you can define URL templates to open Google Maps or
 Open Street Map for tht current device location:
 
@@ -244,7 +251,7 @@ logging or displayed in the frontend
 Many of the attributes are volatile in nature. Adjust database logging
 options according to your needs, e.g.:
 
-```
+```json
     "database": {
       "deviceAttributeLogging": [
         ...
