@@ -254,6 +254,11 @@ module.exports = (env) =>
       # device attribute initialization
       @_serial = @config.serial
 
+      @_tag = lastState?.tag?.value or "unknown"
+      @_last_tag = @_tag
+      @_location = @_tag
+      @_position = @_tag
+
       super()
 
     destroy: () ->
