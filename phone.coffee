@@ -255,7 +255,13 @@ module.exports = (env) =>
       @_serial = @config.serial
 
       @_tag = lastState?.tag?.value or "unknown"
+      @_type = lastState?.type?.value or "?"
+      @_source = lastState?.source?.value or "?"
+
       @_last_tag = @_tag
+      @_last_type = @_type
+      @_last_source = @_source
+
       @_location = @_tag
       @_position = @_tag
 
@@ -362,11 +368,16 @@ module.exports = (env) =>
           .replace("{longitude}", @_longitude.toString())
 
       # emit only if tag has changed or we are significantly moving outside a known position
-      if (@_last_tag != @_tag) or (@_tag == "unknown" and (@_gps_moved > @gpsLimit))
+      if (@_last_source != @_source) \
+      or (@_last_type != @_type) \
+      or (@_last_tag != @_tag) \
+      or (@_tag == "unknown" and (@_gps_moved > @gpsLimit))
         for key, value of @.attributes
           @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
 
       @_last_tag = @_tag
+      @_last_source = @_source
+      @_last_type = @_type
       return Promise.resolve()
 
     _clearUpdates: () ->
