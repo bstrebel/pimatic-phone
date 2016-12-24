@@ -1,3 +1,10 @@
+[![Build Status](http://img.shields.io/travis/bstrebel/pimatic-phone/master.svg)](https://travis-ci.org/bstrebel/pimatic-phone)
+[![Version](https://img.shields.io/npm/v/pimatic-phone.svg)](https://img.shields.io/npm/v/pimatic-phone.svg)
+[![downloads][downloads-image]][downloads-url]
+
+[downloads-image]: https://img.shields.io/npm/dm/pimatic-phone.svg?style=flat
+[downloads-url]: https://npmjs.org/package/pimatic-phone
+
 pimatic-phone
 =============
 
