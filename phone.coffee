@@ -308,7 +308,8 @@ module.exports = (env) =>
       @_accuracy = accuracy
       @_type = type
       @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude}, @accuracy)
-      return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude},#{@_accuracy}")
+      msg = "Update location for #{@name}: GPS:#{@_latitude},#{@_longitude},#{@_accuracy}"
+      return @_emitUpdates(msg)
 
     updateLocation: (long, lat, updateAddress) ->
       # legacy action for pimatic-location android client
@@ -431,7 +432,8 @@ module.exports = (env) =>
                   else
                     devs = []
                     devs.push(device.name) for device in devices
-                    env.logger.error("iCloud device \"#{@iCloudDevice}\" not found in [#{devs.join(', ')}]")
+                    msg = "iCloud device \"#{@iCloudDevice}\" not found in [#{devs.join(', ')}]"
+                    env.logger.error(msg)
 
     destroy: () ->
       clearInterval @intervalId if @intervalId?
@@ -445,6 +447,7 @@ module.exports = (env) =>
           env.logger[level](error.message)
         else
           location = device.location
-          @updateGPS(location.latitude, location.longitude, location.horizontalAccuracy, location.positionType)
+          @updateGPS(location.latitude, location.longitude, \
+            location.horizontalAccuracy, location.positionType)
 
   return plugin
