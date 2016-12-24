@@ -37,6 +37,10 @@ jspm_packages
 .node_repl_history
 
 .js
+
+# Coffee script only
 *.js
 *.map
 
+# local scratchpad
+.local

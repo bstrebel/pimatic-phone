@@ -4,6 +4,7 @@
   "author": "Bernd Strebel <b.strebel@digitec.de> (https://github.com/bstrebel/pimatic-phone)",
   "main": "phone.coffee",
   "files": [
+    "test",
     "phone.coffee",
     "README.md",
     "phone-config-schema.coffee",
@@ -18,17 +19,31 @@
     "url": "git://github.com/bstrebel/pimatic-phone.git"
   },
   "configSchema": "phone-config-schema.coffee",
-  "scripts": {},
   "dependencies": {
     "fmip": "^2.0.0",
     "geolib": "^2.0.22"
   },
+  "scripts": {
+    "test": "grunt test"
+  },
   "devDependencies": {
+    "blanket": "^1.2.3",
+    "bluebird": "^3.4.6",
+    "cassert": "^0.1.2",
+    "chai": "^3.5.0",
+    "coffee-errors": "^0.8.6",
+    "coffee-script": "^1.12.2",
     "decl-api": "0.0.22",
-    "bluebird": "^3.3.4"
+    "grunt": "^1.0.1",
+    "grunt-cli": "^1.2.0",
+    "grunt-coffeelint": "0.0.16",
+    "grunt-mocha-test": "^0.13.2",
+    "lodash": "^4.17.2",
+    "mocha": "^3.2.0",
+    "sqlite3": "^3.1.8"
   },
   "peerDependencies": {
-    "pimatic": ">=0.8.0 <1.0.0"
+    "pimatic": "~0.9.0"
   },
   "engines": {
     "node": ">0.10.x",
