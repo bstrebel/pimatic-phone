@@ -28,7 +28,7 @@ No additional predicates or rule actions are provided in the moment but
 you can use dynamically generated device variables and attributes, e.g.
 
 ```
-when $phone.location gets updated and $phone_htc.tag != "Home" then turn lights off
+when $phone.location gets updated and $phone.tag != "Home" then turn lights off
 when location of phone is equal to "Office" then log "at work"
 when $phone.distanceToHome is lower than 500 then log "almost at home"
 ...
@@ -48,7 +48,7 @@ Use xLinks to open maps for device location
 As of Rev. 0.4.0 you can define URL templates to open Google Maps or
 Open Street Map for tht current device location:
 
-```
+```json
       xLinkTemplate:
         description: "URL template"
         type: "string"
@@ -63,7 +63,7 @@ Provides a location table to map geo locations (GPS), mobile cell tower
 positions (GSM) and WiFi connections (SSID) to user defined location
 tags
 
-```
+```json
   "plugins": [
     {
       "locations": [
@@ -118,7 +118,7 @@ Device specific configuration
 **PhoneDevice:** Generic mobile device, updates it's location via API
 calls (Tasker-Skripts, Apps)
 
-```
+```json
     {
       "serial": "HTC0815",
       "xAttributeOptions": [],
@@ -131,7 +131,7 @@ calls (Tasker-Skripts, Apps)
 **PhoneDeviceIOS:** Apple mobile devices, use fmip (find-my-iphone)
 service to update location periodically
 
-```
+```json
     {
       "iCloudUser": "user@domain",
       "iCloudPass": "password",
@@ -151,6 +151,7 @@ Attributes
 The following attributes are available are used and can be used for
 logging or displayed in the frontend
 
+```json
     attributes:
       timeSpec:
         label: "Update time spec"
@@ -254,6 +255,7 @@ logging or displayed in the frontend
         acronym: 'GPS'
         displaySparkline: false
         hidden: true
+```
 
 Many of the attributes are volatile in nature. Adjust database logging
 options according to your needs, e.g.:
@@ -310,6 +312,7 @@ where <host> is the domain name/address of your pimatic instance,
 
 Available API call os of Rev. 0.1.1
 
+```json
     actions:
       update:
         decription: "Variable update record"
@@ -349,6 +352,7 @@ Available API call os of Rev. 0.1.1
             type: t.number
           updateAddress:
             type: t.number
+```
 
 TODO: detailed description of calls and params, curl examples, tasker
 examples
@@ -366,14 +370,32 @@ Roadmap
 Changelog
 ---------
 
-Rev. 0.4.1
+v0.4.5
 
-* Log location only on significant movements > gpsLimit
+- initial grunt/mocha setup and travis integration
 
-Rev. 0.4.0
+v0.4.4
 
-* xLink to location URL
+- update location only on relevant changes
+ - significant movements > gpsLimit (v0.4.1)
+ - tag, source or type changes through API calls (new)
 
-Rev. 0.3.1
+v0.4.3
 
-* Stable release with dynamic distance attributes
+- tag initialization on startup [[#1](https://github.com/bstrebel/pimatic-phone/issues/1)]
+
+v0.4.2
+
+- support for overlapping locations
+
+v0.4.1
+
+- update location only on significant movements > gpsLimit
+
+v0.4.0
+
+- xLink to location URL
+
+v0.3.1
+
+- Stable release with dynamic distance attributes
