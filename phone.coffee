@@ -174,6 +174,19 @@ module.exports = (env) =>
         params:
           record:
             type: t.string
+      updatePhone:
+        decription: "Update from Android Tasket"
+        params:
+          serial:
+            type: t.string
+          ssid:
+            type: t.string
+          cellid:
+            type: t.string
+          locn:
+            type: t.string
+          loc:
+            type: t.string
       updateTag:
         description: "Update location tag of device"
         params:
@@ -282,6 +295,27 @@ module.exports = (env) =>
       @_updateLocation(@_tag)
       return @_emitUpdates("Update location for #{@name}: TAG:#{@_tag}")
 
+    updatePhone: (serial, ssid, cellid, locn, loc) ->
+      @_setTimeStamp()
+      tag = null
+      if ! ssid.startsWith('%')
+        tag = plugin.tagFromSSID(ssid)
+        if tag != "unknown"
+          return @updateSSID(ssid)
+      # not connected to WLAN, use GPS or NET location
+      gps = null
+      type = null
+      if ! loc.startsWith('%')
+        gps = @_gpsFromTaskerLocation(loc)
+        type = 'GPS'
+      else if ! locn.startsWith('%')
+        gps = @_gpsFromTaskerLocation(locn)
+        type = 'NET'
+      else if ! cellid.startsWith('%')
+        return @updateCID(cellid)
+      if gps?
+        return @updateGPS(gps.latitude, gps.longitude, gps.accuracy, type)
+
     updateCID: (cell) ->
       @_setTimeStamp()
       @_source = "CID"
@@ -321,6 +355,16 @@ module.exports = (env) =>
       @_type = "GPS"
       @_tag = plugin.tagFromGPS({"latitude": lat, "longitude": long})
       return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude}")
+
+    _gpsFromTaskerLocation: (loc) ->
+      gps = {}
+      if ! loc.startsWith('%')
+        data = loc.split(',',3)
+        gps.latitude = parseFloat(data[0])
+        gps.longitude = parseFloat(data[1])
+        if ! data[2].startsWith('%')
+          gps.accuracy = parseInt(data[2])
+      return gps
 
     _processLocation: () ->
       # process gps location data and calculate distances

@@ -8,6 +8,7 @@ module.exports = {
       serial:
         description: "Serial number of device"
         type: "string"
+        default: ""
       debug:
         description: "Enable debug output"
         type: "boolean"
