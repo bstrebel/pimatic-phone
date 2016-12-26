@@ -84,7 +84,7 @@ startup = =>
         )
       else
         env.logger.warn("shutting pimatic down...")
-        framework.destroy().then( -> exit(1) )
+        framework?.destroy().then( -> exit(1) )
     else
       exit(1)
 
