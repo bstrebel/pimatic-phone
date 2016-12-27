@@ -13,12 +13,12 @@ devices. Continuous GPS tracking and reverse geocoding are expensive in
 terms of mobile power consumption and Google/OSM API requests. Many
 location based rules will work well with known locations like "Home" or
 "Office". The plugin was inspired by the [pimatic-location-plugin](https://pimatic.org/plugins/pimatic-location/) but uses a
-different device layout and a reworked [find-my-iphone library](https://github.com/bstrebel/fmip) for iOS devices.
+different device layout and a reworked [find-my-iphone library](https://github.com/bstrebel/fmip) for **iOS** devices.
 The signature of the _updateLocation_ API call provides compatibility with
 the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
 
 As of Rev. 0.4.6 an additional API call _updatePhone_ provides a simple to use
-interface for Android devices running the Tasker APP. Download and import the
+interface for **Android** devices running the Tasker APP. Download and import the
 [sample project](https://github.com/bstrebel/pimatic-phone/tree/master/assets)
 to Tasker and change the server settings in the HTTP Get task.
 
@@ -121,7 +121,7 @@ Devices
 Device specific configuration
 
 **PhoneDevice:** Generic mobile device, updates it's location via API
-calls (Tasker-Skripts, Apps)
+calls (Tasker scripts, Apps)
 
 ```json
     {

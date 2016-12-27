@@ -60,7 +60,7 @@
 		</Action>
 		<Action sr="act1" ve="7">
 			<code>118</code>
-			<Str sr="arg0" ve="3">https://[user]:[passworfd]@[server]:[port]</Str>
+			<Str sr="arg0" ve="3">https://[user]:[password]@[server]:[port]</Str>
 			<Str sr="arg1" ve="3">/api/device/[deviceId]/updatePhone</Str>
 			<Str sr="arg2" ve="3">serial=%DEVTID
 ssid=%SSID
