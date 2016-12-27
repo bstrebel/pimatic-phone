@@ -175,7 +175,7 @@ module.exports = (env) =>
           record:
             type: t.string
       updatePhone:
-        decription: "Update from Android Tasket"
+        decription: "Update from Android Tasker APP"
         params:
           serial:
             type: t.string

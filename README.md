@@ -17,6 +17,11 @@ different device layout and a reworked [find-my-iphone library](https://github.c
 The signature of the _updateLocation_ API call provides compatibility with
 the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
 
+As of Rev. 0.4.6 an additional API call _updatePhone_ provides a simple to use
+interface for Android devices running the Tasker APP. Download and import the
+[sample project](https://github.com/bstrebel/pimatic-phone/tree/master/assets)
+to Tasker and change the server settings in the HTTP Get task.
+
 The location map allows you to define such well known location tags and
 let you use the most suitable method (native apps, tasker jobs, GPS/GSM
 tracking, WLAN connections, etc.) to update the location of a mobile
@@ -297,7 +302,7 @@ Device actions
 Different actions/API calls can be used to update the device location.
 Use HTTP(S) GET requests like
 ```
-http(s)://<host>/api/<device>/<call>?<key>=<value>[&<key>=<value]...
+http(s)://<host>/api/device/<deviceId>/<action>?<key>=<value>[&<key>=<value]...
 ```
 where <host> is the domain name/address of your pimatic instance,
 <device> is the deviceId of your mobile and call is one of the following:
@@ -318,6 +323,19 @@ Available API call os of Rev. 0.1.1
         decription: "Variable update record"
         params:
           record:
+            type: t.string
+      updatePhone:
+        decription: "Update from Android Tasker APP"
+        params:
+          serial:
+            type: t.string
+          ssid:
+            type: t.string
+          cellid:
+            type: t.string
+          locn:
+            type: t.string
+          loc:
             type: t.string
       updateTag:
         description: "Update location tag of device"
@@ -369,6 +387,11 @@ Roadmap
 
 Changelog
 ---------
+
+v0.4.6
+
+- updatePhone API call for Android Tasker APP
+
 
 v0.4.5
 
