@@ -19,7 +19,7 @@ the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
 
 As of Rev. 0.4.6 an additional API call _updatePhone_ provides a simple to use
 interface for **Android** devices running the Tasker APP. Download and import the
-[sample project](https://github.com/bstrebel/pimatic-phone/tree/master/assets)
+[sample project](https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/Pimatic.prj.xml)
 to Tasker and change the server settings in the HTTP Get task.
 
 The location map allows you to define such well known location tags and
