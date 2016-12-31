@@ -14,6 +14,7 @@ If you start from scratch with Tasker on Android, the following guide will be he
 Download and install [Tasker](https://play.google.com/store/apps/details?id=net.dinglisch.android.taskerm&hl=de) from Google Play:
 
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/TaskerApp.png" width="640">
+
 ---
 The project toolbar is visible in the advanced mode. First goto preferences
 and disable Beginner mode:
@@ -35,7 +36,7 @@ Review project
 ---
 Edit UpdatePhone task
 
-<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/UpdatePhoneTask.png" width="320">&nbsp;&nbsp;&nbsp;<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/UpdatePhoeEdit.png" width="320">
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/UpdatePhoneTask.png" width="320">&nbsp;&nbsp;&nbsp;<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/UpdatePhoneEdit.png" width="320">
 
 
 
