@@ -8,13 +8,15 @@ If you start from scratch with Tasker on Android, the following guide will be he
 
 Download and install [Tasker](https://play.google.com/store/apps/details?id=net.dinglisch.android.taskerm&hl=de) from Google Play:
 
-![Google Play Store](TaskerApp.png)
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/TaskerApp.png" width="640">
 
 The project toolbar is visible in the advanced mode. First goto preferences
-
-![Tasker Preferences](Preferences.png =800x)
-
 and disable Beginner mode:
+
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/Preferences.png" width="320">&nbsp;&nbsp;&nbsp;<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/BeginnerMode.png" width="320">
+
+
+
 
 ![Beginner Mode](BeginnerMode.png =800x)
 
