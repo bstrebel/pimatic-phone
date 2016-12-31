@@ -8,6 +8,9 @@ or use other methods to transfer the file "Pimatic.prj.xml" to the download dire
 Experienced users import the project file in Tasker and change the url and device name
 in the _HTTP Get_ action.
 
+See [Location Without Tears](http://tasker.dinglisch.net/userguide/en/loctears.html) for some background information regarding device
+location tracking without draining batteries in a few hours ...
+
 If you start from scratch with Tasker on Android, the following guide will be helpful.
 
 ---
@@ -29,12 +32,15 @@ to select the sample project file.
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/ImportProject.png" width="320">&nbsp;&nbsp;&nbsp;<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/SelectFileDialog.png" width="320">
 
 ---
-Review project
+The project uses 2 generic profiles to trigger the phone update if you
+establish a WiFi connection or your phone connects to another cellular
+GSM/CDMA access point.
 
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/ProjectProfiles.png" width="320">&nbsp;&nbsp;&nbsp;<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/ProjectTasks.png" width="320">
 
 ---
-Edit UpdatePhone task
+The UpdatePhone task calls the pimatic API action and updates your phone
+location in pimatic. Adjust the HTTP Get settings to your requirements.
 
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/UpdatePhoneTask.png" width="320">&nbsp;&nbsp;&nbsp;<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/UpdatePhoneEdit.png" width="320">
 
