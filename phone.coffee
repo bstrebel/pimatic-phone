@@ -474,9 +474,10 @@ module.exports = (env) =>
                       @_updateDevice()
                     ), @iCloudInterval * 1000)
                   else
-                    devs = []
-                    devs.push(device.name) for device in devices
-                    msg = "iCloud device \"#{@iCloudDevice}\" not found in [#{devs.join(', ')}]"
+                    # devs = []
+                    # devs.push(device.name) for device in devices
+                    # msg = "iCloud device \"#{@iCloudDevice}\" not found in [#{devs.join(', ')}]"
+                    msg = "iCloud device \"#{@iCloudDevice}\" not found!"
                     env.logger.error(msg)
 
     destroy: () ->
