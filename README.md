@@ -8,6 +8,12 @@
 pimatic-phone
 =============
 
+```
+
+2017-01-23: Support for iOS devices broken due to iCloud API changes !!!
+
+```
+
 A generic pimatic plugin for mobile devices to provide location based
 devices. Continuous GPS tracking and reverse geocoding are expensive in
 terms of mobile power consumption and Google/OSM API requests. Many

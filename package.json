@@ -1,6 +1,6 @@
 {
   "name": "pimatic-phone",
-  "description": "A generic pimatic plugin for mobile devices",
+  "description": "A generic pimatic plugin for mobile devices [Support for iOS broken]",
   "author": "Bernd Strebel <b.strebel@digitec.de> (https://github.com/bstrebel/pimatic-phone)",
   "main": "phone.coffee",
   "files": [
@@ -11,7 +11,7 @@
     "device-config-schema.coffee",
     "LICENSE"
   ],
-  "version": "0.4.6",
+  "version": "0.4.7",
   "homepage": "https://github.com/bstrebel/pimatic-phone",
   "private": false,
   "repository": {
