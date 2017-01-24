@@ -398,7 +398,7 @@ v.0.5.0
 - preliminary hot fix iOS device support
 
 
-**2017-01-23: Support for iOS devices broken due to iCloud API changes!**
+**[Support for iOS devices broken due to iCloud API changes!]**
 
 
 v0.4.6
