@@ -9,8 +9,8 @@ pimatic-phone
 =============
 
 **Rev. 0.5.0 hot fixed broken support for iOS devices but see limitiations of
-[fmip wrapper library](https://www.npmjs.com/package/fmip)! A reworked iCloud library supporting
-Two Factor Authentication and multiple account sessions is in progress.**
+[fmip wrapper library](https://www.npmjs.com/package/fmip)! A reworked iCloud library supporting Two Factor
+Authentication and parallel sessions for multiple accounts is in progress.**
 
 A generic pimatic plugin for mobile devices to provide location based
 devices. Continuous GPS tracking and reverse geocoding are expensive in
