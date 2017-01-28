@@ -19,18 +19,20 @@ for for **iOS** devices inspired by [Picklepete Pyicloud](https://github.com/pic
 The signature of the _updateLocation_ API call provides compatibility
 with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
 
-Some remarks on iOS devices
+**Some remarks on iOS devices**
 
-- Notification emails: A notification email from Apple is generated when
+Notification emails: A notification email from Apple is generated when
     the iCloud session is established on pimatic startup/device creation
 
 - Two factor authentication: If activated, a notification dialog pops up
     on your device requiring a confirmation for the session. Also a
-    verification code is displayed.
+    verification code is displayed. It seems that neither the confirmation
+    nor the verification code is necessary to access the iCloud device
+    information.
 
 - Update interval: Requesting location information from the iPhone triggers
     the device to push the data to the iCloud. A short period increases
-    power consumtion significantly and may drain your batteries.
+    power consumption significantly and may drain your battery.
 
 - Session ID and cookies are not permanently stored but recreated at
     pimatic startup/iOS device initialisation
