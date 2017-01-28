@@ -14,7 +14,7 @@ terms of mobile power consumption and Google/OSM API requests. Many
 location based rules will work well with known locations like "Home" or
 "Office". The plugin was inspired by the [pimatic-location-plugin](https://pimatic.org/plugins/pimatic-location/) but uses a
 different device layout and (as of Rev. 0.6.0) a session based iCloud client
-for for **iOS** devices inspired by [Picklepete Pyicloud](https://github.com/picklepete/pyicloud).
+from [icloud-promise](https://www.npmjs.com/package/icloud-promise) for **iOS** devices.
 
 The signature of the _updateLocation_ API call provides compatibility
 with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
