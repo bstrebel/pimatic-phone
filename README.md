@@ -30,6 +30,9 @@ Some remarks on iOS devices
     the device to push the data to the iCloud. A short period increases
     power consumtion significantly and may drain your batteries.
 
+- Session ID and cookies are not permanently stored and are recreated at
+    pimatic startup/iOS device initialisation
+
 
 As of Rev. 0.4.6 an additional API call _updatePhone_ provides a simple to use
 interface for **Android** devices running the Tasker APP. Download and import the

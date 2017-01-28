@@ -8,7 +8,7 @@ class ICloudError extends Error
   constructor: (@message, @response) ->
     Error.captureStackTrace(@,@)
 
-class Session
+class ICloudSession
 
   home_endpoint: "https://www.icloud.com"
   setup_endpoint: "https://setup.icloud.com/setup/ws/1"
@@ -60,7 +60,7 @@ class Session
       return Promise.reject(error)
     )
 
-class Client
+class ICloudClient
 
   # TODO: validate session an re-authentication
   # TODO: handle two factor authentication (?)
@@ -69,7 +69,7 @@ class Client
     @apple_id = apple_id
     @password = password
     @authenticated = false
-    @session = new Session(@)
+    @session = new ICloudSession(@)
     @data = null
     @webservices = null
     @hsaChallengeRequired = null
@@ -151,5 +151,5 @@ class Client
     devs.push(device.name) for device in @devices
     return devs
 
-module.exports.Client = Client
+module.exports.ICloudClient = ICloudClient
 module.exports.ICloudError = ICloudError

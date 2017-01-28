@@ -466,7 +466,7 @@ module.exports = (env) =>
             if not @iCloudDevice
               env.logger.error("Missing iCloud device name for #{name}")
             else
-              @iCloudClient = new icloud.Client(@iCloudUser, @iCloudPass)
+              @iCloudClient = new icloud.ICloudClient(@iCloudUser, @iCloudPass)
               @iCloudClient.login()
               .then( () =>
                 @iCloudClient.refreshClient()
