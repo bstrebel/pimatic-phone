@@ -440,9 +440,11 @@ module.exports = (env) =>
       @_latitude = location?.gps?.latitude or null
       @_longitude = location?.gps?.longitude or null
 
+
   class PhoneDeviceIOS extends PhoneDevice
 
-    fmip = require 'fmip'
+    require 'coffee-script/register'
+    icloud = require('./icloud')
 
     constructor: (@config, lastState, plugin) ->
 
@@ -452,6 +454,7 @@ module.exports = (env) =>
       @iCloudPass = @config.iCloudPass
       @iCloudDevice = @config.iCloudDevice
       @iCloudInterval = @config.iCloudInterval
+      @iCloudClient = null
 
       if @iCloudInterval > 0
         if not @iCloudUser
@@ -463,36 +466,50 @@ module.exports = (env) =>
             if not @iCloudDevice
               env.logger.error("Missing iCloud device name for #{name}")
             else
-              fmip.devices @iCloudUser, @iCloudPass, (error, devices) =>
-                if error?
-                  env.logger.error(error.message)
-                else
-                  if _.find(devices, 'name': @iCloudDevice)
+              @iCloudClient = new icloud.Client(@iCloudUser, @iCloudPass)
+              @iCloudClient.login()
+              .then( () =>
+                @iCloudClient.refreshClient()
+                .then( () =>
+                  found = _.find(@iCloudClient.devices, name: @iCloudDevice)
+                  if found
                     env.logger.info("Found device \"#{@iCloudDevice}\" for #{@iCloudUser}")
-                    @_updateDevice()
-                    @intervalId = setInterval( ( =>
+                    location = found.location
+                    @updateGPS(location.latitude, location.longitude, \
+                      location.horizontalAccuracy, location.positionType)
+                    @intervalId = setInterval(( =>
                       @_updateDevice()
                     ), @iCloudInterval * 1000)
                   else
-                    # devs = []
-                    # devs.push(device.name) for device in devices
-                    # msg = "iCloud device \"#{@iCloudDevice}\" not found in [#{devs.join(', ')}]"
-                    msg = "iCloud device \"#{@iCloudDevice}\" not found!"
-                    env.logger.error(msg)
+                    devs = @iCloudClient.deviceNames().join(', ')
+                    env.logger.error("iCloud device \"#{@iCloudDevice}\" not found in [#{devs}]!")
+                )
+                .catch( (error) =>
+                  env.logger.error("Device update of \"#{@iCloudDevice}\" failed, " + error.message)
+                )
+              )
+              .catch( (error) =>
+                env.logger.error("Login failed for \"#{@iCloudUser}\", " + error.message)
+              )
 
     destroy: () ->
       clearInterval @intervalId if @intervalId?
       super()
 
-    _updateDevice: () ->
-      fmip.device @iCloudUser, @iCloudPass, @iCloudDevice, (error, device) =>
-        if error?
-          # don't log common iCloud request errors by default
-          level = if error.type == 'HOST' then 'debug' else 'error'
-          env.logger[level](error.message)
-        else
-          location = device.location
-          @updateGPS(location.latitude, location.longitude, \
-            location.horizontalAccuracy, location.positionType)
+    _updateDevice: () =>
+      @iCloudClient.refreshClient()
+        .then((response) =>
+          found = _.find(@iCloudClient.devices, name: @iCloudDevice)
+          if found
+            location = found.location
+            @updateGPS(location.latitude, location.longitude, \
+              location.horizontalAccuracy, location.positionType)
+          else
+            devs = @iCloudClient.deviceNames().join(', ')
+            env.logger.error("iCloud device \"#{@iCloudDevice}\" not found in [#{devs}]!")
+        )
+        .catch( (error) =>
+          env.logger.error("Device update of \"#{@iCloudDevice}\" failed, " + error.message)
+        )
 
   return plugin

@@ -8,24 +8,33 @@
 pimatic-phone
 =============
 
-**Rev. 0.5.0 hot fixed broken support for iOS devices but see limitiations of
-[fmip wrapper library](https://www.npmjs.com/package/fmip)! A reworked iCloud library supporting Two Factor
-Authentication and parallel sessions for multiple accounts is in progress.**
-
 A generic pimatic plugin for mobile devices to provide location based
 devices. Continuous GPS tracking and reverse geocoding are expensive in
 terms of mobile power consumption and Google/OSM API requests. Many
 location based rules will work well with known locations like "Home" or
 "Office". The plugin was inspired by the [pimatic-location-plugin](https://pimatic.org/plugins/pimatic-location/) but uses a
-different device layout and a reworked [find-my-iphone library](https://github.com/bstrebel/fmip) for **iOS** devices.
-The signature of the _updateLocation_ API call provides compatibility with
-the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
+different device layout and (as of Rev. 0.6.0) a session based iCloud client
+for for **iOS** devices. The signature of the _updateLocation_ API call
+provides compatibility with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
+
+Some remarks on iOS devices
+
+- Notification emails: A notification email from Apple is generated when
+    the iCloud session is established on pimatic startup/device creation
+
+- Two factor authentication: If activated, a notification dialog pops up
+    on your device requiring a confirmation for the session. Also a
+    verification code is displayed.
+
+- Update interval: Requesting location information from the iPhone triggers
+    the device to push the data to the iCloud. A short period increases
+    power consumtion significantly and may drain your batteries.
+
 
 As of Rev. 0.4.6 an additional API call _updatePhone_ provides a simple to use
 interface for **Android** devices running the Tasker APP. Download and import the
-[sample project](https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/Pimatic.prj.xml)
-to Tasker and change the server settings in the HTTP Get task. See the [Tasker Setup Guide](https://github.com/bstrebel/pimatic-phone/blob/master/assets/TaskerSetup.md)
-for details.
+[sample project](https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/Pimatic.prj.xml) to Tasker and change the server settings in the HTTP Get task.
+See the [Tasker Setup Guide](https://github.com/bstrebel/pimatic-phone/blob/master/assets/TaskerSetup.md) for details.
 
 The location map allows you to define such well known location tags and
 let you use the most suitable method (native apps, tasker jobs, GPS/GSM
@@ -392,6 +401,11 @@ Roadmap
 
 Changelog
 ---------
+
+v.0.6.1
+
+- iOS support with session based iCloud client module
+
 
 v.0.5.0
 
