@@ -21,7 +21,7 @@ with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location
 
 **Some remarks on iOS devices**
 
-Notification emails: A notification email from Apple is generated when
+- Notification emails: A notification email from Apple is generated when
     the iCloud session is established on pimatic startup/device creation
 
 - Two factor authentication: If activated, a notification dialog pops up
@@ -69,17 +69,20 @@ radius of 1000m. A distance of 200m will provide the location "home",
 500m give you "near home".
 
 
-Use xLinks to open maps for device location
--------------------------------------------
+Use xLinks to open maps for device location (experimental)
+----------------------------------------------------------
 As of Rev. 0.4.0 you can define URL templates to open Google Maps or
-Open Street Map for tht current device location:
+Open Street Map for the current device location:
 
-```json
+```coffeescript
       xLinkTemplate:
         description: "URL template"
         type: "string"
         default: "https://www.google.com/maps?q={latitude}+{longitude}"
 ```
+
+Limitations: The values are not updated in the frontend. You have to
+manually refresh the browser window.
 
 
 Plugin configuration
@@ -89,7 +92,7 @@ Provides a location table to map geo locations (GPS), mobile cell tower
 positions (GSM) and WiFi connections (SSID) to user defined location
 tags
 
-```json
+```coffeescript
   "plugins": [
     {
       "locations": [
@@ -154,10 +157,10 @@ calls (Tasker scripts, Apps)
     }
 ```
 
-**PhoneDeviceIOS:** Apple mobile devices, use fmip (find-my-iphone)
-service to update location periodically
+**PhoneDeviceIOS:** Apple mobile devices, uses fmipservice API to update
+the location periodically
 
-```json
+```coffeescript
     {
       "iCloudUser": "user@domain",
       "iCloudPass": "password",
@@ -168,7 +171,7 @@ service to update location periodically
       "class": "PhoneDeviceIOS",
       "debug": true,
       "accuracy": 500
-    },
+    }
 ```
 
 Attributes
@@ -177,7 +180,7 @@ Attributes
 The following attributes are available are used and can be used for
 logging or displayed in the frontend
 
-```json
+```coffeescript
     attributes:
       timeSpec:
         label: "Update time spec"
@@ -286,10 +289,10 @@ logging or displayed in the frontend
 Many of the attributes are volatile in nature. Adjust database logging
 options according to your needs, e.g.:
 
-```json
+```coffeescript
     "database": {
       "deviceAttributeLogging": [
-        ...
+        # ...
         {
           "deviceId": "phone_*",
           "attributeName": "*",
@@ -308,8 +311,8 @@ options according to your needs, e.g.:
           "expire": "1y"
         }
       ],
-      ...
-    },
+      #...
+    }
 
 ```
 With Rev. 0.4.1 a new configuration option gpsLimit allows you to
@@ -338,7 +341,7 @@ where <host> is the domain name/address of your pimatic instance,
 
 Available API call os of Rev. 0.1.1
 
-```json
+```coffeescript
     actions:
       update:
         decription: "Variable update record"
@@ -409,12 +412,16 @@ Roadmap
 Changelog
 ---------
 
-v.0.6.1
+v0.6.3
+
+- updated documentation
+
+v0.6.1
 
 - iOS support with session based iCloud client module
 
 
-v.0.5.0
+v0.5.0
 
 - preliminary hot fix iOS device support
 
