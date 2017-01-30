@@ -8,24 +8,40 @@
 pimatic-phone
 =============
 
-**Rev. 0.5.0 hot fixed broken support for iOS devices but see limitiations of
-[fmip wrapper library](https://www.npmjs.com/package/fmip)! A reworked iCloud library supporting Two Factor
-Authentication and parallel sessions for multiple accounts is in progress.**
-
 A generic pimatic plugin for mobile devices to provide location based
 devices. Continuous GPS tracking and reverse geocoding are expensive in
 terms of mobile power consumption and Google/OSM API requests. Many
 location based rules will work well with known locations like "Home" or
 "Office". The plugin was inspired by the [pimatic-location-plugin](https://pimatic.org/plugins/pimatic-location/) but uses a
-different device layout and a reworked [find-my-iphone library](https://github.com/bstrebel/fmip) for **iOS** devices.
-The signature of the _updateLocation_ API call provides compatibility with
-the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
+different device layout and (as of Rev. 0.6.0) a session based iCloud client
+from [icloud-promise](https://www.npmjs.com/package/icloud-promise) for **iOS** devices.
+
+The signature of the _updateLocation_ API call provides compatibility
+with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
+
+**Some remarks on iOS devices**
+
+- Notification emails: A notification email from Apple is generated when
+    the iCloud session is established on pimatic startup/device creation
+
+- Two factor authentication: If activated, a notification dialog pops up
+    on your device requiring a confirmation for the session. Also a
+    verification code is displayed. It seems that neither the confirmation
+    nor the verification code is necessary to access the iCloud device
+    information.
+
+- Update interval: Requesting location information from the iPhone triggers
+    the device to push the data to the iCloud. A short period increases
+    power consumption significantly and may drain your battery.
+
+- Session ID and cookies are not permanently stored but recreated at
+    pimatic startup/iOS device initialisation
+
 
 As of Rev. 0.4.6 an additional API call _updatePhone_ provides a simple to use
 interface for **Android** devices running the Tasker APP. Download and import the
-[sample project](https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/Pimatic.prj.xml)
-to Tasker and change the server settings in the HTTP Get task. See the [Tasker Setup Guide](https://github.com/bstrebel/pimatic-phone/blob/master/assets/TaskerSetup.md)
-for details.
+[sample project](https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/Pimatic.prj.xml) to Tasker and change the server settings in the HTTP Get task.
+See the [Tasker Setup Guide](https://github.com/bstrebel/pimatic-phone/blob/master/assets/TaskerSetup.md) for details.
 
 The location map allows you to define such well known location tags and
 let you use the most suitable method (native apps, tasker jobs, GPS/GSM
@@ -53,17 +69,20 @@ radius of 1000m. A distance of 200m will provide the location "home",
 500m give you "near home".
 
 
-Use xLinks to open maps for device location
--------------------------------------------
+Use xLinks to open maps for device location (experimental)
+----------------------------------------------------------
 As of Rev. 0.4.0 you can define URL templates to open Google Maps or
-Open Street Map for tht current device location:
+Open Street Map for the current device location:
 
-```json
+```coffeescript
       xLinkTemplate:
         description: "URL template"
         type: "string"
         default: "https://www.google.com/maps?q={latitude}+{longitude}"
 ```
+
+Limitations: The values are not updated in the frontend. You have to
+manually refresh the browser window.
 
 
 Plugin configuration
@@ -73,7 +92,7 @@ Provides a location table to map geo locations (GPS), mobile cell tower
 positions (GSM) and WiFi connections (SSID) to user defined location
 tags
 
-```json
+```coffeescript
   "plugins": [
     {
       "locations": [
@@ -138,10 +157,10 @@ calls (Tasker scripts, Apps)
     }
 ```
 
-**PhoneDeviceIOS:** Apple mobile devices, use fmip (find-my-iphone)
-service to update location periodically
+**PhoneDeviceIOS:** Apple mobile devices, uses fmipservice API to update
+the location periodically
 
-```json
+```coffeescript
     {
       "iCloudUser": "user@domain",
       "iCloudPass": "password",
@@ -152,7 +171,7 @@ service to update location periodically
       "class": "PhoneDeviceIOS",
       "debug": true,
       "accuracy": 500
-    },
+    }
 ```
 
 Attributes
@@ -161,7 +180,7 @@ Attributes
 The following attributes are available are used and can be used for
 logging or displayed in the frontend
 
-```json
+```coffeescript
     attributes:
       timeSpec:
         label: "Update time spec"
@@ -270,10 +289,10 @@ logging or displayed in the frontend
 Many of the attributes are volatile in nature. Adjust database logging
 options according to your needs, e.g.:
 
-```json
+```coffeescript
     "database": {
       "deviceAttributeLogging": [
-        ...
+        # ...
         {
           "deviceId": "phone_*",
           "attributeName": "*",
@@ -292,8 +311,8 @@ options according to your needs, e.g.:
           "expire": "1y"
         }
       ],
-      ...
-    },
+      #...
+    }
 
 ```
 With Rev. 0.4.1 a new configuration option gpsLimit allows you to
@@ -322,7 +341,7 @@ where <host> is the domain name/address of your pimatic instance,
 
 Available API call os of Rev. 0.1.1
 
-```json
+```coffeescript
     actions:
       update:
         decription: "Variable update record"
@@ -393,7 +412,16 @@ Roadmap
 Changelog
 ---------
 
-v.0.5.0
+v0.6.3
+
+- updated documentation
+
+v0.6.1
+
+- iOS support with session based iCloud client module
+
+
+v0.5.0
 
 - preliminary hot fix iOS device support
 
