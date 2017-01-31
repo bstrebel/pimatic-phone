@@ -293,7 +293,7 @@ module.exports = (env) =>
       @_tag = tag
       @_type = "API"
       @_updateLocation(@_tag)
-      return @_emitUpdates("Update location for #{@name}: TAG:#{@_tag}")
+      return @_emitUpdates("Update location for \"#{@name}\": TAG:#{@_tag}")
 
     updatePhone: (serial, ssid, cellid, locn, loc) ->
       @_setTimeStamp()
@@ -323,7 +323,7 @@ module.exports = (env) =>
       @_type = "CID"
       @_tag = plugin.tagFromCID(cell)
       @_updateLocation(@_tag)
-      return @_emitUpdates("Update location for #{@name}: #{@_cell}")
+      return @_emitUpdates("Update location for \"#{@name}V: #{@_cell}")
 
     updateSSID: (ssid) ->
       @_setTimeStamp()
@@ -332,7 +332,7 @@ module.exports = (env) =>
       @_type = ssid
       @_tag = plugin.tagFromSSID(ssid)
       @_updateLocation(@_tag)
-      return @_emitUpdates("Update location for #{@name}: SSID:#{@_ssid}")
+      return @_emitUpdates("Update location for \"#{@name}\": SSID:#{@_ssid}")
 
     updateGPS: (latitude, longitude, accuracy, type) ->
       @_setTimeStamp()
@@ -342,7 +342,7 @@ module.exports = (env) =>
       @_accuracy = accuracy
       @_type = type
       @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude}, @accuracy)
-      msg = "Update location for #{@name}: GPS:#{@_latitude},#{@_longitude},#{@_accuracy}"
+      msg = "Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude},#{@_accuracy}"
       return @_emitUpdates(msg)
 
     updateLocation: (long, lat, updateAddress) ->
@@ -354,7 +354,7 @@ module.exports = (env) =>
       @_accuracy = 0
       @_type = "GPS"
       @_tag = plugin.tagFromGPS({"latitude": lat, "longitude": long})
-      return @_emitUpdates("Update location for #{@name}: GPS:#{@_latitude},#{@_longitude}")
+      return @_emitUpdates("Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude}")
 
     _gpsFromTaskerLocation: (loc) ->
       gps = {}
@@ -446,6 +446,13 @@ module.exports = (env) =>
     require 'coffee-script/register'
     icloud = require 'icloud-promise'
 
+    actions:
+      suspend:
+        decription: "Suspend iCloud location updates"
+        params:
+          flag:
+            type: t.string
+
     constructor: (@config, lastState, plugin) ->
 
       super(@config, lastState, plugin)
@@ -454,7 +461,13 @@ module.exports = (env) =>
       @iCloudPass = @config.iCloudPass
       @iCloudDevice = @config.iCloudDevice
       @iCloudInterval = @config.iCloudInterval
+      @iCloudVerify = @config.iCloudVerify
+      @iCloudTimezone = @config.iCloudTimezone
+      @iCloudSessionTimeout = @config.iCloudSessionTimeout
       @iCloudClient = null
+      @iCloudSuspend = false
+
+      @config.iCloudVerify = '000000'
 
       if @iCloudInterval > 0
         if not @iCloudUser
@@ -466,10 +479,16 @@ module.exports = (env) =>
             if not @iCloudDevice
               env.logger.error("Missing iCloud device name for #{name}")
             else
-              @iCloudClient = new icloud.ICloudClient(@iCloudUser, @iCloudPass)
+              @iCloudClient = new icloud.ICloudClient(@iCloudUser, @iCloudPass, @iCloudVerify, @iCloudTimezone)
               @iCloudClient.login()
               .then( () =>
-                @iCloudClient.refreshClient()
+                if @iCloudClient.hsaChallengeRequired
+                  env.logger.warn("Detected 2FA for \"#{@iCloudUser}\". Some limitations may apply, see documentation for details!")
+                  if @iCloudVerify  is '000000'
+                    env.logger.warn("You shoud use iCloudVerify attribute to enter the 2FA verification code!")
+                  if @iCloudInterval > @iCloudSessionTimeout * 1000
+                    env.logger.warn("Update interval should be less then 600 seconds due to API issues for 2FA!")
+                @iCloudClient.initClient()
                 .then( () =>
                   found = _.find(@iCloudClient.devices, name: @iCloudDevice)
                   if found
@@ -480,6 +499,11 @@ module.exports = (env) =>
                     @intervalId = setInterval(( =>
                       @_updateDevice()
                     ), @iCloudInterval * 1000)
+                    if @iCloudInterval > @iCloudSessionTimeout
+                      @refreshClientId = setInterval(( =>
+                        @_refreshClient()
+                      ), (@iCloudSessionTimeout - 5) * 1000)
+                      env.logger.info("iCloud session heartbeat initialized")
                   else
                     devs = @iCloudClient.deviceNames().join(', ')
                     env.logger.error("iCloud device \"#{@iCloudDevice}\" not found in [#{devs}]!")
@@ -494,22 +518,53 @@ module.exports = (env) =>
 
     destroy: () ->
       clearInterval @intervalId if @intervalId?
-      super()
-
-    _updateDevice: () =>
-      @iCloudClient.refreshClient()
-        .then((response) =>
-          found = _.find(@iCloudClient.devices, name: @iCloudDevice)
-          if found
-            location = found.location
-            @updateGPS(location.latitude, location.longitude, \
-              location.horizontalAccuracy, location.positionType)
-          else
-            devs = @iCloudClient.deviceNames().join(', ')
-            env.logger.error("iCloud device \"#{@iCloudDevice}\" not found in [#{devs}]!")
+      clearInterval @refreshClientId if @refreshClientId?
+      if @iCloudClient?
+        @iCloudClient.logout()
+        .then( (response) =>
+          env.logger.debug("iCloud session logout")
         )
         .catch( (error) =>
-          env.logger.error("Device update of \"#{@iCloudDevice}\" failed, " + error.message)
+          env.logger.debug("iCloud session logout failed: " + error.message)
         )
+      super()
+
+    suspend: (flag) =>
+      if flag.toUpperCase() in ['ON','AN','TRUE','JA','YES','1','EIN']
+        @iCloudSuspend = true
+        env.logger.info("Location updates for #{@iCloudDevice} suspended!")
+        return true
+      else
+        @iCloudSuspend = false
+        env.logger.info("Location updates for #{@iCloudDevice} enabled!")
+        return false
+
+    _refreshClient: () =>
+      @iCloudClient.refreshWebAuth()
+      .then( (response) =>
+        env.logger.debug("iCloud session refresh succeeded")
+      )
+      .catch( (error) =>
+        env.logger.error("iCloud session refresh failed: " + error.message)
+      )
+
+    _updateDevice: () =>
+      if @iCloudSuspend
+        env.logger.debug("Location update for \"#{@iCloudDevice}\" skipped.")
+        return
+      @iCloudClient.refreshClient()
+      .then((response) =>
+        found = _.find(@iCloudClient.devices, name: @iCloudDevice)
+        if found
+          location = found.location
+          @updateGPS(location.latitude, location.longitude, \
+            location.horizontalAccuracy, location.positionType)
+        else
+          devs = @iCloudClient.deviceNames().join(', ')
+          env.logger.error("iCloud device \"#{@iCloudDevice}\" not found in [#{devs}]!")
+      )
+      .catch( (error) =>
+        env.logger.error("Update of device \"#{@iCloudDevice}\" failed, " + error.message)
+       )
 
   return plugin

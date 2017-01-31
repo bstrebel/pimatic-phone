@@ -24,18 +24,33 @@ with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location
 - Notification emails: A notification email from Apple is generated when
     the iCloud session is established on pimatic startup/device creation
 
-- Two factor authentication: If activated, a notification dialog pops up
-    on your device requiring a confirmation for the session. Also a
-    verification code is displayed. It seems that neither the confirmation
-    nor the verification code is necessary to access the iCloud device
-    information.
-
-- Update interval: Requesting location information from the iPhone triggers
+- Update interval (I): Requesting location information from the iPhone triggers
     the device to push the data to the iCloud. A short period increases
     power consumption significantly and may drain your battery.
 
+- Update interval (II): Use rules and the pimatic-phone API to suspend location
+    updates, e.g. if the device is connected to WiFi at home: Use [pimatic-ping](https://pimatic.org/plugins/pimatic-ping/)
+    or [pimatic-cron](https://pimatic.org/plugins/pimatic-cron/) to trigger the suspend by executing (inspired by a request
+    at the [pimatic forum](https://forum.pimatic.org/topic/2719/pimatic-phone-icloud-error/37))
+
+```
+    curl --user "admin:admin" --silent --request GET \
+    http://localhost:8080/api/device/<IPHONE>/suspend?flag=false
+```
+
 - Session ID and cookies are not permanently stored but recreated at
     pimatic startup/iOS device initialisation
+
+- Two factor authentication (2FA): If activated, a notification dialog pops up
+    on your device requiring a confirmation for the session. Also a
+    verification code is displayed. It seems that neither the confirmation
+    nor the verification code is really necessary to access the iCloud device
+    information. You can avoid this messages by generating a verification
+    code on your iPhone (Settings -> iCloud -> Apple ID -> Security
+    -> Verification Code) and use this code in the iCloudVerify configuration
+    option. Currently their is no possibility to refresh 2FA sessions.
+    Keep your iCloudInterval lesser then the session timeout of 600 seconds.
+
 
 
 As of Rev. 0.4.6 an additional API call _updatePhone_ provides a simple to use
@@ -157,7 +172,7 @@ calls (Tasker scripts, Apps)
     }
 ```
 
-**PhoneDeviceIOS:** Apple mobile devices, uses fmipservice API to update
+**PhoneDeviceIOS:** Apple mobile devices, uses icloud-promise API to update
 the location periodically
 
 ```coffeescript
@@ -172,6 +187,84 @@ the location periodically
       "debug": true,
       "accuracy": 500
     }
+```
+
+Device configuration option details
+
+```coffeescript
+
+  PhoneDevice:
+    title: "Phone device config"
+    type: "object"
+    extensions: ["xAttributeOptions", "xLink"]
+    properties:
+      serial:
+        description: "Serial number of device"
+        type: "string"
+        default: ""
+      debug:
+        description: "Enable debug output"
+        type: "boolean"
+        default: false
+      accuracy:
+        description: "Radius (m) for GPS mapping"
+        type: "number"
+        default: 250
+      xLinkTemplate:
+        description: "URL template"
+        type: "string"
+        default: "https://www.google.com/maps?q={latitude}+{longitude}"
+
+  PhoneDeviceIOS:
+    title: "iPhone device configuration"
+    type: "object"
+    extensions: ["xAttributeOptions", "xLink"]
+    properties:
+      iCloudUser:
+        description: "iCloud user (Apple ID)"
+        type: "string"
+        default: ""
+      iCloudPass:
+        description: "iCloud password"
+        type: "string"
+        default: ""
+      iCloudVerify:
+        description: "iCloud 2FA verification code"
+        type: "string"
+        default: "000000"
+      iCloudDevice:
+        description: "iCloud device name"
+        type: "string"
+        default: ""
+      iCloudInterval:
+        description: "iCloud poll interval (seconds)"
+        type: "integer"
+        default: 300
+      iCloudSessionTimeout:
+        description: "iCloud session expiration timeout"
+        type: "integer"
+        default: 600
+      iCloudTimezone:
+        description: "iCloud client timezone"
+        type: "string"
+        default: "Europe/Berlin"
+      debug:
+        description: "Enable debug output"
+        type: "boolean"
+        default: false
+      accuracy:
+        description: "Radius (m) for GPS mapping"
+        type: "number"
+        default: 250
+      gpsLimit:
+        description: "Log new position only if significantly moved"
+        type: "number"
+        default: 250
+      xLinkTemplate:
+        description: "URL template"
+        type: "string"
+        default: "https://www.google.com/maps?q={latitude}+{longitude}"
+
 ```
 
 Attributes
@@ -338,6 +431,7 @@ where <host> is the domain name/address of your pimatic instance,
 |updateCID|cid|%CELLID| Android tasker mobile cell ID|
 |updateSSID|ssid|ssid|SSID of connected WLAN
 |updateLocation|long,lat,updateAddress|gps data|legacy call for PimaticLocation Android App|
+|suspend|flag|true/false, on/off|suspend location updates, iOS devices only!|
 
 Available API call os of Rev. 0.1.1
 
@@ -394,6 +488,14 @@ Available API call os of Rev. 0.1.1
             type: t.number
           updateAddress:
             type: t.number
+            
+    actions:
+      suspend:
+        decription: "Suspend iCloud location updates"
+        params:
+          flag:
+            type: t.string
+            
 ```
 
 TODO: detailed description of calls and params, curl examples, tasker
@@ -411,6 +513,12 @@ Roadmap
 
 Changelog
 ---------
+
+v0.7.0
+
+- enhanced configuration options for iOS devices
+- use icloud-promise module
+- suspend iCloud location updates via AOI call
 
 v0.6.3
 
