@@ -34,6 +34,10 @@ module.exports = {
         description: "iCloud password"
         type: "string"
         default: ""
+      iCloudVerification:
+        description: "iCloud 2FA verification code"
+        type: "string"
+        default: "000000"
       iCloudDevice:
         description: "iCloud device name"
         type: "string"
@@ -41,7 +45,11 @@ module.exports = {
       iCloudInterval:
         description: "iCloud poll interval (seconds)"
         type: "integer"
-        default: 60
+        default: 300
+      iCloudTimezone:
+        description: "iCloud client timezone"
+        type: "string"
+        default: "Europe/Berlin"
       debug:
         description: "Enable debug output"
         type: "boolean"

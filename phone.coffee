@@ -444,7 +444,7 @@ module.exports = (env) =>
   class PhoneDeviceIOS extends PhoneDevice
 
     require 'coffee-script/register'
-    icloud = require('./icloud')
+    icloud = require 'icloud-promise'
 
     constructor: (@config, lastState, plugin) ->
 
