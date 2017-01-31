@@ -514,6 +514,12 @@ Roadmap
 Changelog
 ---------
 
+v0.7.1
+
+- validate device location (may be undefined) if location service
+    is disabled
+
+
 v0.7.0
 
 - enhanced configuration options for iOS devices
