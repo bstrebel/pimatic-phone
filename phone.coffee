@@ -479,15 +479,19 @@ module.exports = (env) =>
             if not @iCloudDevice
               env.logger.error("Missing iCloud device name for #{name}")
             else
-              @iCloudClient = new icloud.ICloudClient(@iCloudUser, @iCloudPass, @iCloudVerify, @iCloudTimezone)
+              @iCloudClient = new icloud.ICloudClient(
+                @iCloudUser, @iCloudPass, @iCloudVerify, @iCloudTimezone)
               @iCloudClient.login()
               .then( () =>
                 if @iCloudClient.hsaChallengeRequired
-                  env.logger.warn("Detected 2FA for \"#{@iCloudUser}\". Some limitations may apply, see documentation for details!")
+                  env.logger.warn("Detected 2FA for \"#{@iCloudUser}\". \
+                    Some limitations may apply, see documentation for details!")
                   if @iCloudVerify  is '000000'
-                    env.logger.warn("You shoud use iCloudVerify attribute to enter the 2FA verification code!")
+                    env.logger.warn("You shoud use iCloudVerify attribute \
+                      to enter the 2FA verification code!")
                   if @iCloudInterval > @iCloudSessionTimeout * 1000
-                    env.logger.warn("Update interval should be less then 600 seconds due to API issues for 2FA!")
+                    env.logger.warn("Update interval should be less \
+                      then 600 seconds due to API issues for 2FA!")
                 @iCloudClient.initClient()
                 .then( () =>
                   found = _.find(@iCloudClient.devices, name: @iCloudDevice)
@@ -521,10 +525,10 @@ module.exports = (env) =>
       clearInterval @refreshClientId if @refreshClientId?
       if @iCloudClient?
         @iCloudClient.logout()
-        .then( (response) =>
+        .then( (response) ->
           env.logger.debug("iCloud session logout")
         )
-        .catch( (error) =>
+        .catch( (error) ->
           env.logger.debug("iCloud session logout failed: " + error.message)
         )
       super()
@@ -541,10 +545,10 @@ module.exports = (env) =>
 
     _refreshClient: () =>
       @iCloudClient.refreshWebAuth()
-      .then( (response) =>
+      .then( (response) ->
         env.logger.debug("iCloud session refresh succeeded")
       )
-      .catch( (error) =>
+      .catch( (error) ->
         env.logger.error("iCloud session refresh failed: " + error.message)
       )
 
