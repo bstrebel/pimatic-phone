@@ -347,6 +347,7 @@ module.exports = (env) =>
 
     updateLocation: (long, lat, updateAddress) ->
       # legacy action for pimatic-location android client
+      not_used = updateAddress
       @_setTimeStamp()
       @_source = "LOC"
       @_latitude = lat
@@ -497,17 +498,23 @@ module.exports = (env) =>
                   found = _.find(@iCloudClient.devices, name: @iCloudDevice)
                   if found
                     env.logger.info("Found device \"#{@iCloudDevice}\" for #{@iCloudUser}")
-                    location = found.location
-                    @updateGPS(location.latitude, location.longitude, \
-                      location.horizontalAccuracy, location.positionType)
-                    @intervalId = setInterval(( =>
-                      @_updateDevice()
-                    ), @iCloudInterval * 1000)
-                    if @iCloudInterval > @iCloudSessionTimeout
-                      @refreshClientId = setInterval(( =>
-                        @_refreshClient()
-                      ), (@iCloudSessionTimeout - 5) * 1000)
-                      env.logger.info("iCloud session heartbeat initialized")
+                    if found.location?
+                      env.logger.debug("Location information available \
+                        for device \"#{@iCloudDevice}\"")
+                      location = found.location
+                      @updateGPS(location.latitude, location.longitude, \
+                        location.horizontalAccuracy, location.positionType)
+                      @intervalId = setInterval(( =>
+                        @_updateDevice()
+                      ), @iCloudInterval * 1000)
+                      if @iCloudInterval > @iCloudSessionTimeout
+                        @refreshClientId = setInterval(( =>
+                          @_refreshClient()
+                        ), (@iCloudSessionTimeout - 5) * 1000)
+                        env.logger.info("iCloud session heartbeat initialized")
+                    else
+                      env.logger.debug("No location information available \
+                        for device \"#{@iCloudDevice}\"!")
                   else
                     devs = @iCloudClient.deviceNames().join(', ')
                     env.logger.error("iCloud device \"#{@iCloudDevice}\" not found in [#{devs}]!")
@@ -560,9 +567,12 @@ module.exports = (env) =>
       .then((response) =>
         found = _.find(@iCloudClient.devices, name: @iCloudDevice)
         if found
-          location = found.location
-          @updateGPS(location.latitude, location.longitude, \
-            location.horizontalAccuracy, location.positionType)
+          if found.location?
+            location = found.location
+            @updateGPS(location.latitude, location.longitude, \
+              location.horizontalAccuracy, location.positionType)
+          else
+            env.logger.debug("No location information available for device \"#{@iCloudDevice}\"!")
         else
           devs = @iCloudClient.deviceNames().join(', ')
           env.logger.error("iCloud device \"#{@iCloudDevice}\" not found in [#{devs}]!")
