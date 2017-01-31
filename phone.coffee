@@ -493,13 +493,13 @@ module.exports = (env) =>
                   if @iCloudInterval > @iCloudSessionTimeout * 1000
                     env.logger.warn("Update interval should be less \
                       then 600 seconds due to API issues for 2FA!")
-                @iCloudClient.initClient()
+                @iCloudClient.refreshClient()
                 .then( () =>
                   found = _.find(@iCloudClient.devices, name: @iCloudDevice)
                   if found
                     env.logger.info("Found device \"#{@iCloudDevice}\" for #{@iCloudUser}")
                     if found.location?
-                      env.logger.debug("Location information available \
+                      env.logger.info("Location information available \
                         for device \"#{@iCloudDevice}\"")
                       location = found.location
                       @updateGPS(location.latitude, location.longitude, \
@@ -513,7 +513,7 @@ module.exports = (env) =>
                         ), (@iCloudSessionTimeout - 5) * 1000)
                         env.logger.info("iCloud session heartbeat initialized")
                     else
-                      env.logger.debug("No location information available \
+                      env.logger.error("No location information available \
                         for device \"#{@iCloudDevice}\"!")
                   else
                     devs = @iCloudClient.deviceNames().join(', ')

@@ -35,7 +35,7 @@ with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location
 
 ```
     curl --user "admin:admin" --silent --request GET \
-    http://localhost:8080/api/device/<IPHONE>/suspend?flag=false
+    http://localhost:8080/api/device/<IPHONE>/suspend?flag=true
 ```
 
 - Session ID and cookies are not permanently stored but recreated at
