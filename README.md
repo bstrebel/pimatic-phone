@@ -514,6 +514,16 @@ Roadmap
 Changelog
 ---------
 
+v0.7.3
+
+- force UI update on recreation of device
+- additional device debuggibg outbut if enabled
+- minor bugfixes
+
+v0.7.2
+
+- use refreshClient during initalization
+
 v0.7.1
 
 - validate device location (may be undefined) if location service
