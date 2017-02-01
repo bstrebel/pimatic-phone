@@ -247,7 +247,7 @@ module.exports = (env) =>
 
       # use device specific debug flag
       # to allow changes during runtime
-      @debug = @config.debug || false
+      @_debug = @config.debug || false
       @accuracy = @config.accuracy
       @gpsLimit = @config.gpsLimit
 
@@ -270,6 +270,10 @@ module.exports = (env) =>
       @_tag = lastState?.tag?.value or "unknown"
       @_type = lastState?.type?.value or "?"
       @_source = lastState?.source?.value or "?"
+      @_latitude = lastState?.latitude?.value or null
+      @_longitude = lastState?.longitude?.value or null
+
+      @_emitUpdates("Initial location update for device #{@id}", true)
 
       @_last_tag = @_tag
       @_last_type = @_type
@@ -279,6 +283,10 @@ module.exports = (env) =>
       @_position = @_tag
 
       super()
+
+    debug: (message) =>
+      if @debug
+        env.logger.debug("Device #{@id}: " + message)
 
     destroy: () ->
       super()
@@ -342,7 +350,8 @@ module.exports = (env) =>
       @_accuracy = accuracy
       @_type = type
       @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude}, @accuracy)
-      msg = "Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude},#{@_accuracy}"
+      msg = "Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude},#{@_accuracy} \
+        Tag: [#{@_tag}]"
       return @_emitUpdates(msg)
 
     updateLocation: (long, lat, updateAddress) ->
@@ -369,15 +378,17 @@ module.exports = (env) =>
 
     _processLocation: () ->
       # process gps location data and calculate distances
-      @_gps_current = {}
-      @_gps_current.latitude = @_latitude if @_latitude
-      @_gps_current.longitude = @_longitude if @_longitude
-      @_gps_current.accuracy = @_accuracy if @_accuracy
-      @_gps = JSON.stringify(@_gps_current)
+      @_gps_current = null
+      if @_latitude? and @_longitude?
+        @_gps_current = {}
+        @_gps_current.latitude = @_latitude if @_latitude
+        @_gps_current.longitude = @_longitude if @_longitude
+        @_gps_current.accuracy = @_accuracy if @_accuracy
+        @_gps = JSON.stringify(@_gps_current)
 
       # calculate distance to the last position
       @_gps_moved = null
-      if @_gps_last?
+      if @_gps_last? and @_gps_current
         try
           @_gps_moved = geolib.getDistance(@_gps_last, @_gps_current)
         catch error
@@ -385,22 +396,24 @@ module.exports = (env) =>
       @_gps_last = _.clone(@_gps_current, true)
 
       # calculate distance for every location tag
-      for location in plugin.config.locations
-        attributeName = "_distanceTo" + location.tag
-        distance = null
-        if location.tag == @_tag
-          distance = 0
-        else
-          if location.gps?
-            try
-              distance = geolib.getDistance(@_gps_current, location.gps)
-            catch error
-              env.logger.error(error)
 
-        # update distance attribute for this location
-        @[attributeName] = distance
+      if @_gps_current?
+        for location in plugin.config.locations
+          attributeName = "_distanceTo" + location.tag
+          distance = null
+          if location.tag == @_tag
+            distance = 0
+          else
+            if location.gps?
+              try
+                distance = geolib.getDistance(@_gps_current, location.gps)
+              catch error
+                env.logger.error(error)
 
-    _emitUpdates: (logMsg) ->
+          # update distance attribute for this location
+          @[attributeName] = distance
+
+    _emitUpdates: (logMsg, force=false) ->
       env.logger.debug(logMsg)
       @_processLocation()
 
@@ -413,11 +426,29 @@ module.exports = (env) =>
         @config.xLink = @config.xLinkTemplate.replace("{latitude}", @_latitude.toString())
           .replace("{longitude}", @_longitude.toString())
 
+      changed = false
+      if @_last_source != @_source
+        @debug("Source changed #{@_last_source} -> #{@_source}")
+        changed = true
+      else if @_last_type != @_type
+        @debug("Type changed #{@_last_type} -> #{@_type}")
+        changed = true
+      else if @_last_tag != @_tag
+        @debug("Tag changed #{@_last_tag} -> #{@_tag}")
+        changed = true
+      else if (@_tag == "unknown") and (@_gps_moved > @gpsLimit)
+        @debug("GPS moved #{@_gps_moved}")
+        changed = true
+      else
+        @debug("Location not changed. Skipping update ...")
+
       # emit only if tag has changed or we are significantly moving outside a known position
-      if (@_last_source != @_source) \
-      or (@_last_type != @_type) \
-      or (@_last_tag != @_tag) \
-      or (@_tag == "unknown" and (@_gps_moved > @gpsLimit))
+      # if (@_last_source != @_source) \
+      # or (@_last_type != @_type) \
+      # or (@_last_tag != @_tag) \
+      # or (@_tag == "unknown" and (@_gps_moved > @gpsLimit))
+
+      if changed or force
         for key, value of @.attributes
           @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
 
