@@ -78,6 +78,15 @@ module.exports = (env) =>
         displaySparkline: false
         hidden: false
         discrete: true
+      timeStamp:
+        label: "Update time stamp"
+        description: "Date and time of the last location update."
+        type: t.number
+        unit: ""
+        acronym: 'UTC'
+        displaySparkline: false
+        hidden: true
+        discrete: true
       source:
         label: "Location source"
         description: "Source of location information: LOC, GPS, NET, TAG, SSID, ..."
@@ -117,7 +126,7 @@ module.exports = (env) =>
         unit: ""
         acronym: 'PREV'
         displaySparkline: false
-        hidden: false
+        hidden: true
         discrete: true
       previousLocation:
         description: "Alias for the previous tag attribute"
@@ -263,6 +272,7 @@ module.exports = (env) =>
     getPreviousLocation: () -> Promise.resolve(@_last_tag)
     getPreviousPosition: () -> Promise.resolve(@_last_tag)
     getTimeSpec: () -> Promise.resolve(@_timeSpec)
+    getTimeStamp: () -> Promise.resolve(@_timeStamp)
     getSerial: () -> Promise.resolve(@_serial)
     getLatitude: () -> Promise.resolve(@_latitude)
     getLongitude: () -> Promise.resolve(@_longitude)
@@ -308,12 +318,11 @@ module.exports = (env) =>
       @_source = lastState?.source?.value or "?"
       @_latitude = lastState?.latitude?.value or null
       @_longitude = lastState?.longitude?.value or null
+      @_timeStamp = lastState?.timeStamp?.value or new Date().getTime()
+      @_timeSpec = lastState?.timeSpec?.value or new Date(@_timeStamp).format(@timeformat)
 
+      @_setTimeStamp()
       @_emitUpdates("Initial location update for device #{@id}", true)
-
-      @_last_tag = @_tag
-      @_last_type = @_type
-      @_last_source = @_source
 
       super()
 
@@ -343,7 +352,6 @@ module.exports = (env) =>
       return @_emitUpdates("Update location for \"#{@name}\": tag: [#{@_tag}]")
 
     updatePhone: (serial, ssid, cellid, locn, loc) ->
-      @_setTimeStamp()
       tag = null
       if ! ssid.startsWith('%')
         tag = plugin.tagFromSSID(ssid)
@@ -480,20 +488,26 @@ module.exports = (env) =>
         for key, value of @.attributes
           @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
 
-      @_last_tag = @_tag
-      @_last_source = @_source
-      @_last_type = @_type
-
       return Promise.resolve(@_locationResponse())
 
     _clearUpdates: () =>
       for key, value of @.attributes
         @['_'+ key] = null if key isnt '__proto__'
 
-    _setTimeStamp: () =>
-      # fetch update timestamp and clear local vars
-      @_clearUpdates()
-      @_timeSpec = new Date().format(@timeformat)
+    _setTimeStamp: (update=true) =>
+      # save values from previous update
+      @_last_tag = @_tag
+      @_last_source = @_source
+      @_last_type = @_type
+      @_last_timeSpec = @_timeSpec
+      @_last_timeStamp = @_timeStamp
+      if update
+        # fetch update timestamp and clear local vars
+        @_clearUpdates()
+        @_timeStamp = new Date().getTime()
+        @_timeSpec = new Date(@_timeStamp).format(@timeformat)
+        #@_timeStamp = new Date()
+        #@_timeSpec = @_timeStamp.format(@timeformat)
 
     _updateLocation: (tag) ->
       # set gps location from tag
@@ -507,11 +521,15 @@ module.exports = (env) =>
         response.tag = @_last_tag if @_last_tag?
         response.source = @_last_source if @_last_source?
         response.type = @_last_type if @_last_type?
+        response.time = @_last_timeSpec if @_last_timeSpec
+        response.utc = @_last_timeStamp if @_last_timeStamp
         response.gps = _.clone(@_gps_previous, true) if @_gps_previous?
       else
         response.tag = @_tag if @_tag?
         response.source = @_source if @_source?
         response.type = @_type if @_type?
+        response.time = @_timeSpec if @_timeSpec
+        response.utc = @_timeStamp if @_timeStamp
         response.gps = _.clone(@_gps_current, true) if @_gps_current?
       return response
 
