@@ -8,11 +8,11 @@
 pimatic-phone
 =============
 
-A generic pimatic plugin for mobile devices to provide location based
+- A generic pimatic plugin for mobile devices to provide location based
 devices. Continuous GPS tracking and reverse geocoding are expensive in
 terms of mobile power consumption and Google/OSM API requests. Many
 location based rules will work well with known locations like "Home" or
-"Office". The plugin was inspired by the [pimatic-location-plugin](https://pimatic.org/plugins/pimatic-location/) but uses a
+"Office". The plugin was inspired by the [pimatic-locatin-plugin](https://pimatic.org/plugins/pimatic-location/) but uses a
 different device layout and (as of Rev. 0.6.0) a session based iCloud client
 from [icloud-promise](https://www.npmjs.com/package/icloud-promise) for **iOS** devices.
 
@@ -22,7 +22,7 @@ with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location
 **Some remarks on iOS devices**
 
 - Notification emails: A notification email from Apple is generated when
-    the iCloud session is established on pimatic startup/device creation
+    the iCloud session is established on pimatic startup/device creation.
 
 - Update interval (I): Requesting location information from the iPhone triggers
     the device to push the data to the iCloud. A short period increases
@@ -31,7 +31,8 @@ with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location
 - Update interval (II): Use rules and the pimatic-phone API to suspend location
     updates, e.g. if the device is connected to WiFi at home: Use [pimatic-ping](https://pimatic.org/plugins/pimatic-ping/)
     or [pimatic-cron](https://pimatic.org/plugins/pimatic-cron/) to trigger the suspend by executing (inspired by a request
-    at the [pimatic forum](https://forum.pimatic.org/topic/2719/pimatic-phone-icloud-error/37))
+    at the [pimatic forum](https://forum.pimatic.org/topic/2719/pimatic-phone-icloud-error/37)). This feature could not be used if you have
+    two factor authentication activated. See 2FA remarks (see below).
 
 ```
     curl --user "admin:admin" --silent --request GET \
@@ -39,7 +40,12 @@ with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location
 ```
 
 - Session ID and cookies are not permanently stored but recreated at
-    pimatic startup/iOS device initialisation
+    pimatic startup/iOS device initialisation. Their is no automatic reconnect
+    of sessions to avoid flooding with notification mails due to configuration
+    issues or other problems. In case of an error and a lost connection
+    open the configuration dialog of the device. A new session is established
+    when you recreate the device by clicking the save button. Their is no need
+    to restart pimatic.
 
 - Two factor authentication (2FA): If activated, a notification dialog pops up
     on your device requiring a confirmation for the session. Also a
@@ -61,7 +67,9 @@ See the [Tasker Setup Guide](https://github.com/bstrebel/pimatic-phone/blob/mast
 The location map allows you to define such well known location tags and
 let you use the most suitable method (native apps, tasker jobs, GPS/GSM
 tracking, WLAN connections, etc.) to update the location of a mobile
-device.
+device. Location tags are similar to geofences and client apps like [Locative](https://github.com/LocativeHQ)
+for [iOS](https://itunes.apple.com/de/app/locative/id725198453?mt=8) or [Android](https://play.google.com/store/apps/details?id=io.locative.app&hl=de) can be used to update the device location with the new
+ GET requests _enter_ and _exit_. See API documentation below for details.
 
 As of revision 0.7.5 all API calls return the current device location on
 success.
@@ -586,8 +594,8 @@ Changelog
 v0.7.5
 
 - API calls return JSON response
-- additional API calls
 - support for previousLocation attributes
+- additional API calls: enter, exit, fetchLocation, fetchPreviousLocation
 
 v0.7.3
 
