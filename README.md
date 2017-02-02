@@ -72,6 +72,8 @@ success.
     "tag":"Home",
     "source":"TAG",
     "type":"API",
+    "time":"2017-02-02 15:47:05",
+    "utc":1486046825540,    
     "gps":
     {
       "latitude":53.12345678,
@@ -84,7 +86,6 @@ success.
 Also two additional api calls _fetchLocation_ and _fetchPreviousLocation_
 are implemented to provide the location information by simple GET requests.
 See the API documentation below for details.
-
 
 
 Location based rules
@@ -582,10 +583,16 @@ Roadmap
 Changelog
 ---------
 
+v0.7.5
+
+- API calls return JSON response
+- additional API calls
+- support for previousLocation attributes
+
 v0.7.3
 
 - force UI update on recreation of device
-- additional device debuggibg outbut if enabled
+- additional device debugging output if enabled
 - minor bugfixes
 
 v0.7.2
