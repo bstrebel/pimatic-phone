@@ -111,6 +111,30 @@ module.exports = (env) =>
         displaySparkline: false
         hidden: true
         discrete: true
+      previousTag:
+        description: "Previous location of the device"
+        type: t.string
+        unit: ""
+        acronym: 'PREV'
+        displaySparkline: false
+        hidden: false
+        discrete: true
+      previousLocation:
+        description: "Alias for the previous tag attribute"
+        type: t.string
+        unit: ""
+        acronym: 'PREV'
+        displaySparkline: false
+        hidden: true
+        discrete: true
+      previousPosition:
+        description: "Alias for the previous tag attribute"
+        type: t.string
+        unit: ""
+        acronym: 'PREV'
+        displaySparkline: false
+        hidden: true
+        discrete: true
       type:
         label: "Type"
         description: "Type of position data"
@@ -220,12 +244,24 @@ module.exports = (env) =>
             type: t.number
           updateAddress:
             type: t.number
+      suspend:
+        description: "Suspend iCloud location updates"
+        params:
+          flag:
+            type: t.string
+      fetchLocation:
+        description: "Return current device location"
+      fetchPreviousLocation:
+        description: "Return previous device location"
 
     # attribute getter methods
     getSource: () -> Promise.resolve(@_source)
     getTag: () -> Promise.resolve(@_tag)
-    getLocation: () -> Promise.resolve(@_location)
-    getPosition: () -> Promise.resolve(@_position)
+    getLocation: () -> Promise.resolve(@_tag)
+    getPosition: () -> Promise.resolve(@_tag)
+    getPreviousTag: () -> Promise.resolve(@_last_tag)
+    getPreviousLocation: () -> Promise.resolve(@_last_tag)
+    getPreviousPosition: () -> Promise.resolve(@_last_tag)
     getTimeSpec: () -> Promise.resolve(@_timeSpec)
     getSerial: () -> Promise.resolve(@_serial)
     getLatitude: () -> Promise.resolve(@_latitude)
@@ -279,9 +315,6 @@ module.exports = (env) =>
       @_last_type = @_type
       @_last_source = @_source
 
-      @_location = @_tag
-      @_position = @_tag
-
       super()
 
     debug: (message) =>
@@ -290,6 +323,12 @@ module.exports = (env) =>
 
     destroy: () ->
       super()
+
+    fetchLocation: () ->
+      return Promise.resolve(@_locationResponse())
+
+    fetchPreviousLocation: () ->
+      return Promise.resolve(@_locationResponse(true))
 
     update: (record) ->
       @_setTimeStamp()
@@ -301,7 +340,7 @@ module.exports = (env) =>
       @_tag = tag
       @_type = "API"
       @_updateLocation(@_tag)
-      return @_emitUpdates("Update location for \"#{@name}\": TAG:#{@_tag}")
+      return @_emitUpdates("Update location for \"#{@name}\": tag: [#{@_tag}]")
 
     updatePhone: (serial, ssid, cellid, locn, loc) ->
       @_setTimeStamp()
@@ -356,7 +395,6 @@ module.exports = (env) =>
 
     updateLocation: (long, lat, updateAddress) ->
       # legacy action for pimatic-location android client
-      not_used = updateAddress
       @_setTimeStamp()
       @_source = "LOC"
       @_latitude = lat
@@ -378,6 +416,7 @@ module.exports = (env) =>
 
     _processLocation: () ->
       # process gps location data and calculate distances
+      @_gps_previous = _.clone(@_gps_last, true) if @_gps_last?
       @_gps_current = null
       if @_latitude? and @_longitude?
         @_gps_current = {}
@@ -388,7 +427,7 @@ module.exports = (env) =>
 
       # calculate distance to the last position
       @_gps_moved = null
-      if @_gps_last? and @_gps_current
+      if @_gps_last? and @_gps_current?
         try
           @_gps_moved = geolib.getDistance(@_gps_last, @_gps_current)
         catch error
@@ -396,7 +435,6 @@ module.exports = (env) =>
       @_gps_last = _.clone(@_gps_current, true)
 
       # calculate distance for every location tag
-
       if @_gps_current?
         for location in plugin.config.locations
           attributeName = "_distanceTo" + location.tag
@@ -416,10 +454,6 @@ module.exports = (env) =>
     _emitUpdates: (logMsg, force=false) ->
       env.logger.debug(logMsg)
       @_processLocation()
-
-      # update tag aliases
-      @_location = @_tag
-      @_position = @_tag
 
       # update xLink URL
       if @_latitude? and @_longitude?
@@ -442,12 +476,6 @@ module.exports = (env) =>
       else
         @debug("Location not changed. Skipping update ...")
 
-      # emit only if tag has changed or we are significantly moving outside a known position
-      # if (@_last_source != @_source) \
-      # or (@_last_type != @_type) \
-      # or (@_last_tag != @_tag) \
-      # or (@_tag == "unknown" and (@_gps_moved > @gpsLimit))
-
       if changed or force
         for key, value of @.attributes
           @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
@@ -455,13 +483,14 @@ module.exports = (env) =>
       @_last_tag = @_tag
       @_last_source = @_source
       @_last_type = @_type
-      return Promise.resolve()
 
-    _clearUpdates: () ->
+      return Promise.resolve(@_locationResponse())
+
+    _clearUpdates: () =>
       for key, value of @.attributes
         @['_'+ key] = null if key isnt '__proto__'
 
-    _setTimeStamp: () ->
+    _setTimeStamp: () =>
       # fetch update timestamp and clear local vars
       @_clearUpdates()
       @_timeSpec = new Date().format(@timeformat)
@@ -472,23 +501,27 @@ module.exports = (env) =>
       @_latitude = location?.gps?.latitude or null
       @_longitude = location?.gps?.longitude or null
 
+    _locationResponse: (previous=false) =>
+      response = {}
+      if previous
+        response.tag = @_last_tag if @_last_tag?
+        response.source = @_last_source if @_last_source?
+        response.type = @_last_type if @_last_type?
+        response.gps = _.clone(@_gps_previous, true) if @_gps_previous?
+      else
+        response.tag = @_tag if @_tag?
+        response.source = @_source if @_source?
+        response.type = @_type if @_type?
+        response.gps = _.clone(@_gps_current, true) if @_gps_current?
+      return response
 
   class PhoneDeviceIOS extends PhoneDevice
 
-    require 'coffee-script/register'
+    # require 'coffee-script/register'
     icloud = require 'icloud-promise'
 
-    actions:
-      suspend:
-        decription: "Suspend iCloud location updates"
-        params:
-          flag:
-            type: t.string
-
     constructor: (@config, lastState, plugin) ->
-
       super(@config, lastState, plugin)
-
       @iCloudUser = @config.iCloudUser
       @iCloudPass = @config.iCloudPass
       @iCloudDevice = @config.iCloudDevice
@@ -572,14 +605,10 @@ module.exports = (env) =>
       super()
 
     suspend: (flag) =>
-      if flag.toUpperCase() in ['ON','AN','TRUE','JA','YES','1','EIN']
-        @iCloudSuspend = true
-        env.logger.info("Location updates for #{@iCloudDevice} suspended!")
-        return true
-      else
-        @iCloudSuspend = false
-        env.logger.info("Location updates for #{@iCloudDevice} enabled!")
-        return false
+      @iCloudSuspend = flag.toUpperCase() in ['ON','AN','TRUE','JA','YES','1','EIN']
+      # throw new Error("Error!")
+      env.logger.info("Suspend for #{@iCloudDevice}: [#{@iCloudSuspend}]")
+      return Promise.resolve(@iCloudSuspend)
 
     _refreshClient: () =>
       @iCloudClient.refreshWebAuth()

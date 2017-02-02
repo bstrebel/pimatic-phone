@@ -63,6 +63,30 @@ let you use the most suitable method (native apps, tasker jobs, GPS/GSM
 tracking, WLAN connections, etc.) to update the location of a mobile
 device.
 
+As of revision 0.7.5 all API calls return the current device location on
+success.
+```json
+{
+  "result":
+  {
+    "tag":"Home",
+    "source":"TAG",
+    "type":"API",
+    "gps":
+    {
+      "latitude":53.12345678,
+      "longitude":10.87654321
+    }
+  },
+  "success":true
+}
+```
+Also two additional api calls _fetchLocation_ and _fetchPreviousLocation_
+are implemented to provide the location information by simple GET requests.
+See the API documentation below for details.
+
+
+
 Location based rules
 --------------------
 No additional predicates or rule actions are provided in the moment but
@@ -325,6 +349,30 @@ logging or displayed in the frontend
         acronym: 'TYP'
         displaySparkline: false
         hidden: false
+      previousTag:
+        description: "Previous location of the device"
+        type: t.string
+        unit: ""
+        acronym: 'PREV'
+        displaySparkline: false
+        hidden: false
+        discrete: true
+      previousLocation:
+        description: "Alias for the previous tag attribute"
+        type: t.string
+        unit: ""
+        acronym: 'PREV'
+        displaySparkline: false
+        hidden: true
+        discrete: true
+      previousPosition:
+        description: "Alias for the previous tag attribute"
+        type: t.string
+        unit: ""
+        acronym: 'PREV'
+        displaySparkline: false
+        hidden: true
+        discrete: true
       latitude:
         label: "Latitude"
         description: "Latitude of device"
@@ -432,6 +480,8 @@ where <host> is the domain name/address of your pimatic instance,
 |updateSSID|ssid|ssid|SSID of connected WLAN
 |updateLocation|long,lat,updateAddress|gps data|legacy call for PimaticLocation Android App|
 |suspend|flag|true/false, on/off|suspend location updates, iOS devices only!|
+|fetchLocation|||return current device location|
+|fetchPreviousLocation||| return the previous location|
 
 Available API call os of Rev. 0.1.1
 
@@ -488,13 +538,15 @@ Available API call os of Rev. 0.1.1
             type: t.number
           updateAddress:
             type: t.number
-            
-    actions:
       suspend:
-        decription: "Suspend iCloud location updates"
+        description: "Suspend iCloud location updates"
         params:
           flag:
             type: t.string
+      fetchLocation:
+        description: "Return current device location"
+      fetchPreviousLocation:
+        description: "Return previous device location"
             
 ```
 
