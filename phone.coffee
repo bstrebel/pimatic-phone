@@ -225,6 +225,16 @@ module.exports = (env) =>
         params:
           tag:
             type: t.string
+      enter:
+        description: "Enter geofence"
+        params:
+          tag:
+            type: t.string
+      exit:
+        description: "Exit geofence"
+        params:
+          tag:
+            type: t.string
       updateGPS:
         description: "Update geo location values"
         params:
@@ -342,6 +352,22 @@ module.exports = (env) =>
     update: (record) ->
       @_setTimeStamp()
       # TODO: process update record
+
+    enter: (tag) ->
+      @_setTimeStamp()
+      @_source = "GEO"
+      @_tag = tag
+      @_type = "API"
+      @_updateLocation(@_tag)
+      return @_emitUpdates("Update location for \"#{@name}\": geo: [#{@_tag}]")
+
+    exit: (tag) ->
+      @_setTimeStamp()
+      @_source = "GEO"
+      @_tag = "unknown"
+      @_type = "API"
+      @_updateLocation(@_tag)
+      return @_emitUpdates("Update location for \"#{@name}\": geo: [#{@_tag}]")
 
     updateTag: (tag) ->
       @_setTimeStamp()

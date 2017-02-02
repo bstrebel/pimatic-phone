@@ -475,6 +475,8 @@ where <host> is the domain name/address of your pimatic instance,
 | call          | key(s)   | value  | comment                         |
 |---------------|----------|--------|---------------------------------|
 |updateTag|tag|location tag|set the location tag directly|
+|enter|tag|location tag|set the location tag from geofence app|
+|exit|tag|location tag|set the location tag from geofence app|
 |updateGPS|latitude,longitude,accuracy,source|gps data|used internally for iCloud devices|
 |updateCID|cid|%CELLID| Android tasker mobile cell ID|
 |updateSSID|ssid|ssid|SSID of connected WLAN
@@ -483,10 +485,15 @@ where <host> is the domain name/address of your pimatic instance,
 |fetchLocation|||return current device location|
 |fetchPreviousLocation||| return the previous location|
 
+Example:
+```
+    curl --user "admin:admin" --silent --request GET \
+    http://localhost:8080/api/device/<IPHONE>/enter?tag=Home
+```
+
 Available API call os of Rev. 0.1.1
 
 ```coffeescript
-    actions:
       update:
         decription: "Variable update record"
         params:
@@ -507,6 +514,16 @@ Available API call os of Rev. 0.1.1
             type: t.string
       updateTag:
         description: "Update location tag of device"
+        params:
+          tag:
+            type: t.string
+      enter:
+        description: "Enter geofence"
+        params:
+          tag:
+            type: t.string
+      exit:
+        description: "Exit geofence"
         params:
           tag:
             type: t.string
@@ -547,7 +564,6 @@ Available API call os of Rev. 0.1.1
         description: "Return current device location"
       fetchPreviousLocation:
         description: "Return previous device location"
-            
 ```
 
 TODO: detailed description of calls and params, curl examples, tasker
