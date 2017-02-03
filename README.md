@@ -8,7 +8,9 @@
 pimatic-phone
 =============
 
-- A generic pimatic plugin for mobile devices to provide location based
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshot.png" width="640">
+
+A generic pimatic plugin for mobile devices to provide location based
 devices. Continuous GPS tracking and reverse geocoding are expensive in
 terms of mobile power consumption and Google/OSM API requests. Many
 location based rules will work well with known locations like "Home" or
@@ -303,11 +305,10 @@ Device configuration option details
 Attributes
 ----------
 
-The following attributes are available are used and can be used for
-logging or displayed in the frontend
+The following attributes are available and can be used for logging or
+displayed in the frontend.
 
 ```coffeescript
-    attributes:
       timeSpec:
         label: "Update time spec"
         description: "Date and time of the last location update."
@@ -334,23 +335,15 @@ logging or displayed in the frontend
         displaySparkline: false
         hidden: false
         discrete: true
-       location:
-         description: "Alias for the tag attribute"
-         type: t.string
-         unit: ""
-         acronym: 'LOC'
-         displaySparkline: false
-         hidden: true
-         discrete: true
-       position:
-         description: "Alias for the tag attribute"
-         type: t.string
-         unit: ""
-         acronym: 'LOC'
-         displaySparkline: false
-         hidden: true
-         discrete: true
-     type:
+      previousTag:
+        description: "Previous location of the device"
+        type: t.string
+        unit: ""
+        acronym: 'PREV'
+        displaySparkline: false
+        hidden: true
+        discrete: true
+      type:
         label: "Type"
         description: "Type of position data"
         type: t.string
@@ -358,30 +351,6 @@ logging or displayed in the frontend
         acronym: 'TYP'
         displaySparkline: false
         hidden: false
-      previousTag:
-        description: "Previous location of the device"
-        type: t.string
-        unit: ""
-        acronym: 'PREV'
-        displaySparkline: false
-        hidden: false
-        discrete: true
-      previousLocation:
-        description: "Alias for the previous tag attribute"
-        type: t.string
-        unit: ""
-        acronym: 'PREV'
-        displaySparkline: false
-        hidden: true
-        discrete: true
-      previousPosition:
-        description: "Alias for the previous tag attribute"
-        type: t.string
-        unit: ""
-        acronym: 'PREV'
-        displaySparkline: false
-        hidden: true
-        discrete: true
       latitude:
         label: "Latitude"
         description: "Latitude of device"
@@ -406,10 +375,6 @@ logging or displayed in the frontend
         acronym: 'ACC'
         displaySparkline: false
         hidden: true
-      gpsLimit:
-        description: "Log new position only if significantly moved"
-        type: "number"
-        default: 250
       cell:
         label: "Cell"
         description: "Cell ID"
@@ -424,14 +389,6 @@ logging or displayed in the frontend
         type: t.string
         unit: ""
         acronym: 'SSID'
-        displaySparkline: false
-        hidden: true
-      gps:
-        label: "GPS"
-        description: "GPS"
-        type: t.string
-        unit: ""
-        acronym: 'GPS'
         displaySparkline: false
         hidden: true
 ```
@@ -490,9 +447,10 @@ where <host> is the domain name/address of your pimatic instance,
 |updateCID|cid|%CELLID| Android tasker mobile cell ID|
 |updateSSID|ssid|ssid|SSID of connected WLAN
 |updateLocation|long,lat,updateAddress|gps data|legacy call for PimaticLocation Android App|
+|updatePhone|serial,ssid,ssid,...|Tasker vasrs|see [documentation](https://github.com/bstrebel/pimatic-phone/blob/master/assets/TaskerSetup.md) for details|
 |suspend|flag|true/false, on/off|suspend location updates, iOS devices only!|
-|fetchLocation|||return current device location|
-|fetchPreviousLocation||| return the previous location|
+|fetchLocation|n/a|n/a|return current device location|
+|fetchPreviousLocation|n/a|n/a| return the previous location|
 
 Example:
 ```
@@ -500,7 +458,7 @@ Example:
     http://localhost:8080/api/device/<IPHONE>/enter?tag=Home
 ```
 
-Available API call os of Rev. 0.1.1
+Available API call os of Rev. 0.7.5
 
 ```coffeescript
       update:
