@@ -8,7 +8,7 @@
 pimatic-phone
 =============
 
-<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshot.png" width="640">
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshot.png" width="1020">
 
 A generic pimatic plugin for mobile devices to provide location based
 devices. Continuous GPS tracking and reverse geocoding are expensive in
