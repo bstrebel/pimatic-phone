@@ -348,7 +348,7 @@ module.exports = (env) =>
       @_timeSpec = lastState?.timeSpec?.value or new Date(@_timeStamp).format(@timeformat)
       @_suspended = lastState?.suspended?.value or false
 
-      @_setTimeStamp()
+      @_setTimeStamp(false)
       @_emitUpdates("Initial location update for device #{@id}", true)
 
       super()
