@@ -200,6 +200,13 @@ module.exports = (env) =>
         acronym: 'GPS'
         displaySparkline: false
         hidden: true
+      suspended:
+        label: "Suspended"
+        description: "iCloud updates suspended"
+        type: t.boolean
+        acronym: 'OFF'
+        displaySparkline: false
+        hidden: true
 
     actions:
       update:
@@ -272,6 +279,14 @@ module.exports = (env) =>
         description: "Return current device location"
       fetchPreviousLocation:
         description: "Return previous device location"
+      disableUpdates:
+        description: "Disable iCloud location updates"
+      enableUpdates:
+        description: "Enable iCloud location updates"
+        params:
+          code:
+            description: "iCloud 2FA verification code code"
+            type: t.string
 
     # attribute getter methods
     getSource: () -> Promise.resolve(@_source)
@@ -291,6 +306,7 @@ module.exports = (env) =>
     getCell: () -> Promise.resolve(@_cell)
     getSsid: () -> Promise.resolve(@_ssid)
     getGps: () -> Promise.resolve(@_gps)
+    getSuspended: () -> Promise.resolve(@_suspended)
 
     constructor: (@config, lastState, plugin) ->
       # phone device configuration
@@ -330,6 +346,7 @@ module.exports = (env) =>
       @_longitude = lastState?.longitude?.value or null
       @_timeStamp = lastState?.timeStamp?.value or new Date().getTime()
       @_timeSpec = lastState?.timeSpec?.value or new Date(@_timeStamp).format(@timeformat)
+      @_suspended = lastState?.suspended?.value or false
 
       @_setTimeStamp()
       @_emitUpdates("Initial location update for device #{@id}", true)
@@ -350,8 +367,9 @@ module.exports = (env) =>
       return Promise.resolve(@_locationResponse(true))
 
     update: (record) ->
-      @_setTimeStamp()
       # TODO: process update record
+      @_setTimeStamp()
+      throw new Error("Not implemented: Ignoring update record [#{record}]")
 
     enter: (tag) ->
       @_setTimeStamp()
@@ -436,6 +454,7 @@ module.exports = (env) =>
       @_accuracy = 0
       @_type = "GPS"
       @_tag = plugin.tagFromGPS({"latitude": lat, "longitude": long})
+      env.logger.debug("Legacy updateLocation: updateAddress [#{updateAddress}] ignored.")
       return @_emitUpdates("Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude}")
 
     _gpsFromTaskerLocation: (loc) ->
@@ -573,8 +592,8 @@ module.exports = (env) =>
       @iCloudVerify = @config.iCloudVerify
       @iCloudTimezone = @config.iCloudTimezone
       @iCloudSessionTimeout = @config.iCloudSessionTimeout
+      @iCloudSuspended = @config.iCloudSuspended
       @iCloudClient = null
-      @iCloudSuspend = false
 
       @config.iCloudVerify = '000000'
 
@@ -617,7 +636,7 @@ module.exports = (env) =>
                       ), @iCloudInterval * 1000)
                       if @iCloudInterval > @iCloudSessionTimeout
                         @refreshClientId = setInterval(( =>
-                          @_refreshClient()
+                          @_refreshWebAuth()
                         ), (@iCloudSessionTimeout - 5) * 1000)
                         env.logger.info("iCloud session heartbeat initialized")
                     else
@@ -640,7 +659,7 @@ module.exports = (env) =>
       clearInterval @refreshClientId if @refreshClientId?
       if @iCloudClient?
         @iCloudClient.logout()
-        .then( (response) ->
+        .then( () ->
           env.logger.debug("iCloud session logout")
         )
         .catch( (error) ->
@@ -648,25 +667,70 @@ module.exports = (env) =>
         )
       super()
 
-    suspend: (flag) =>
-      @iCloudSuspend = flag.toUpperCase() in ['ON','AN','TRUE','JA','YES','1','EIN']
-      # throw new Error("Error!")
-      env.logger.info("Suspend for #{@iCloudDevice}: [#{@iCloudSuspend}]")
-      return Promise.resolve(@iCloudSuspend)
+    disableUpdates: () =>
+      if not @iCloudClient.hsaChallengeRequired
+        env.logger.warn("Use suspend?flag=false call for 2FA disabled accounts!")
+      if @iCloudClient.authenticated
+        @iCloudClient.logout()
+        .then( () =>
+          env.logger.info("Logout from #{@iCloudDevice} succeeded")
+          @_suspendState(true)
+          return Promise.resolve("iCloud location updates for #{@iCloudDevice} disabled!")
+        )
+        .catch( (error) =>
+          return Promise.reject(new Error("Logout failed for #{@iCloudDevice}, " + error.message))
+        )
+      else
+        @_suspendState(true)
+        return Promise.resolve("iCloud location updates for #{@iCloudDevice} disabled!")
 
-    _refreshClient: () =>
+    enableUpdates: (code) =>
+      @iCloudVerify = code
+      @iCloudClient.verify = code
+      if not @iCloudClient.hsaChallengeRequired
+        env.logger.warn("Use suspend?flag=true call for 2FA disabled accounts!")
+      if @iCloudClient.authenticated
+        msg = "Found active session for \"#{@iCloudDevice}\". Use disableUpdates first!"
+        throw new Error(msg)
+      else
+        @iCloudClient.login()
+        .then(() =>
+          @_refreshClient()
+          .then(() =>
+            @_suspendState(false)
+            return Promise.resolve("iCloud location updates for #{@iCloudDevice} enabled")
+          )
+        )
+        .catch( (error) ->
+          return Promise.reject(error)
+        )
+
+    suspend: (flag) =>
+      if @iCloudClient.hsaChallengeRequired
+        env.logger.warn("Use disable/enableUpdates call for 2FA enabled accounts!")
+      @_suspendState(flag.toUpperCase() in ['ON','AN','TRUE','JA','YES','1','EIN'])
+      # throw new Error("Error!")
+      return Promise.resolve(@iCloudSuspended)
+
+    _suspendState: (flag) =>
+      @iCloudSuspended = flag
+      @config.iCloudSuspended = flag
+      @_suspended = flag
+      @emit @suspended, @_suspended
+      state = if flag then 'disabled' else 'enabled'
+      env.logger.info("Location updates for \"#{@iCloudDevice}\": [#{state}]")
+      return flag
+
+    _refreshWebAuth: () =>
       @iCloudClient.refreshWebAuth()
-      .then( (response) ->
-        env.logger.debug("iCloud session refresh succeeded")
+      .then(() ->
+        env.logger.debug("iCloud session refresh for \"#{@iCloudDevice}\" succeeded")
       )
       .catch( (error) ->
-        env.logger.error("iCloud session refresh failed: " + error.message)
+        env.logger.error("iCloud session refresh for \"#{@iCloudDevice}\" failed: " + error.message)
       )
 
-    _updateDevice: () =>
-      if @iCloudSuspend
-        env.logger.debug("Location update for \"#{@iCloudDevice}\" skipped.")
-        return
+    _refreshClient: () =>
       @iCloudClient.refreshClient()
       .then((response) =>
         found = _.find(@iCloudClient.devices, name: @iCloudDevice)
@@ -675,14 +739,28 @@ module.exports = (env) =>
             location = found.location
             @updateGPS(location.latitude, location.longitude, \
               location.horizontalAccuracy, location.positionType)
+            msg = "Location of device \"#{@iCloudDevice}\" updated"
+            env.logger.debug(msg)
+            return Promise.resolve(response)
           else
-            env.logger.debug("No location information available for device \"#{@iCloudDevice}\"!")
+            msg = "No location information available for device \"#{@iCloudDevice}\"!"
+            throw new Error(msg)
         else
           devs = @iCloudClient.deviceNames().join(', ')
-          env.logger.error("iCloud device \"#{@iCloudDevice}\" not found in [#{devs}]!")
+          msg = "iCloud device \"#{@iCloudDevice}\" not found in [#{devs}]!"
+          throw new Error(msg)
       )
       .catch( (error) =>
         env.logger.error("Update of device \"#{@iCloudDevice}\" failed, " + error.message)
-       )
+        return Promise.reject(error)
+      )
+
+    _updateDevice: () =>
+      if @iCloudSuspended
+        env.logger.debug("Location update for \"#{@iCloudDevice}\" suspended. \
+          Skipping refresh call ...")
+      else
+        @_refreshClient().catch(() -> return false)
+        return true
 
   return plugin

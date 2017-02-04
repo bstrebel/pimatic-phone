@@ -50,6 +50,10 @@ module.exports = {
         description: "iCloud session expiration timeout"
         type: "integer"
         default: 600
+      iCloudSuspended:
+        description: "iCloud updates suspended"
+        type: "boolean"
+        default: false
       iCloudTimezone:
         description: "iCloud client timezone"
         type: "string"
