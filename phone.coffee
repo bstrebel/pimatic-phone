@@ -210,12 +210,12 @@ module.exports = (env) =>
 
     actions:
       update:
-        decription: "Variable update record"
+        description: "Variable update record"
         params:
           record:
             type: t.string
       updatePhone:
-        decription: "Update from Android Tasker APP"
+        description: "Update from Android Tasker APP"
         params:
           serial:
             type: t.string
@@ -456,6 +456,13 @@ module.exports = (env) =>
       @_tag = plugin.tagFromGPS({"latitude": lat, "longitude": long})
       env.logger.debug("Legacy updateLocation: updateAddress [#{updateAddress}] ignored.")
       return @_emitUpdates("Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude}")
+
+    disableUpdates: () ->
+      throw new Error("Call [disableUpdates] only available for iOS devices")
+    enableUpdates: (code) ->
+      throw new Error("Call [enableUpdates?=#{code}] only available for iOS devices")
+    suspend: (flag) ->
+      throw new Error("Call [suspend?flag=#{flag}] only available for iOS devices")
 
     _gpsFromTaskerLocation: (loc) ->
       gps = {}

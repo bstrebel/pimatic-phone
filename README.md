@@ -58,7 +58,12 @@ with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location
     -> Verification Code) and use this code in the iCloudVerify configuration
     option. Currently their is no possibility to refresh 2FA sessions.
     Keep your iCloudInterval lesser then the session timeout of 600 seconds.
-
+    As of Rev. 0.7.6 additional API calls (enable/disableUpdates, see API
+    documentation below) may be used to suspend updates for 2FA sessions.
+    Due to limitations of the iCloud API logout and login calls have to be
+    performed and Apple notification mails are triggered by the enableUpdates
+    call. You have to provide a valid verification code or '000000' as in
+    https://.../enableUpdates?code=000000
 
 
 As of Rev. 0.4.6 an additional API call _updatePhone_ provides a simple to use
@@ -279,6 +284,10 @@ Device configuration option details
         description: "iCloud session expiration timeout"
         type: "integer"
         default: 600
+      iCloudSuspended:
+        description: "iCloud updates suspended"
+        type: "boolean"
+        default: false
       iCloudTimezone:
         description: "iCloud client timezone"
         type: "string"
@@ -391,6 +400,21 @@ displayed in the frontend.
         acronym: 'SSID'
         displaySparkline: false
         hidden: true
+      gps:
+        label: "GPS"
+        description: "GPS"
+        type: t.string
+        unit: ""
+        acronym: 'GPS'
+        displaySparkline: false
+        hidden: true
+      suspended:
+        label: "Suspended"
+        description: "iCloud updates suspended"
+        type: t.boolean
+        acronym: 'OFF'
+        displaySparkline: false
+        hidden: true        
 ```
 
 Many of the attributes are volatile in nature. Adjust database logging
@@ -448,9 +472,11 @@ where <host> is the domain name/address of your pimatic instance,
 |updateSSID|ssid|ssid|SSID of connected WLAN
 |updateLocation|long,lat,updateAddress|gps data|legacy call for PimaticLocation Android App|
 |updatePhone|serial,ssid,ssid,...|Tasker vasrs|see [documentation](https://github.com/bstrebel/pimatic-phone/blob/master/assets/TaskerSetup.md) for details|
-|suspend|flag|true/false, on/off|suspend location updates, iOS devices only!|
 |fetchLocation|n/a|n/a|return current device location|
 |fetchPreviousLocation|n/a|n/a| return the previous location|
+|suspend|flag|true/false, on/off|suspend location updates, iOS devices only!|
+|disableUpdates|n/a|n/a|logout and disable updates for iOS devices with 2FA|
+|enableUpdates|code (verification)|000000|login and enable updates for iOS devices with 2FA|
 
 Example:
 ```
@@ -462,12 +488,12 @@ Available API call os of Rev. 0.7.5
 
 ```coffeescript
       update:
-        decription: "Variable update record"
+        description: "Variable update record"
         params:
           record:
             type: t.string
       updatePhone:
-        decription: "Update from Android Tasker APP"
+        description: "Update from Android Tasker APP"
         params:
           serial:
             type: t.string
@@ -531,6 +557,14 @@ Available API call os of Rev. 0.7.5
         description: "Return current device location"
       fetchPreviousLocation:
         description: "Return previous device location"
+      disableUpdates:
+        description: "Disable iCloud location updates"
+      enableUpdates:
+        description: "Enable iCloud location updates"
+        params:
+          code:
+            description: "iCloud 2FA verification code code"
+            type: t.string
 ```
 
 TODO: detailed description of calls and params, curl examples, tasker
@@ -548,6 +582,11 @@ Roadmap
 
 Changelog
 ---------
+
+v0.7.6
+
+- iCloudSuspended configuration attribute
+- disable/enableUpdates API calls for 2FA sessions
 
 v0.7.5
 
