@@ -350,10 +350,12 @@ module.exports = (env) =>
       @_timeSpec = lastState?.timeSpec?.value or new Date(@_timeStamp).format(@timeformat)
       @_suspended = lastState?.suspended?.value or false
 
+      super()
+
+      # initialization has to be done after super() !!!
       @_setTimeStamp(false) # initialize @_last_* but don't clear attributes
       @_emitUpdates("Initial location update for device #{@id}", true)
 
-      super()
 
     debug: (message) =>
       if @debug
@@ -476,7 +478,7 @@ module.exports = (env) =>
           gps.accuracy = parseInt(data[2])
       return gps
 
-    _processLocation: () ->
+    _processLocation: (force=false) ->
       # process gps location data and calculate distances
       @_gps_previous = _.clone(@_gps_last, true) if @_gps_last?
       @_gps_current = null
@@ -518,31 +520,30 @@ module.exports = (env) =>
 
     _emitUpdates: (logMsg, force=false) ->
       env.logger.debug(logMsg)
-      @_processLocation()
+      @_processLocation(force)
 
       # update xLink URL
       if @_latitude? and @_longitude?
         @config.xLink = @config.xLinkTemplate.replace("{latitude}", @_latitude.toString())
           .replace("{longitude}", @_longitude.toString())
 
-      changed = false
+      changed = true
       if @_last_source != @_source
         @debug("Source changed #{@_last_source} -> #{@_source}")
-        changed = true
       else if @_last_type != @_type
         @debug("Type changed #{@_last_type} -> #{@_type}")
-        changed = true
       else if @_last_tag != @_tag
         @debug("Tag changed #{@_last_tag} -> #{@_tag}")
-        changed = true
       else if (@_tag == "unknown") and (@_gps_moved > @gpsLimit)
         @debug("GPS moved #{@_gps_moved}")
-        changed = true
       else
-        @debug("Location not changed. Skipping update ...")
+        @debug("Location not changed.")
+        changed = false
 
       if changed or force
+        @debug("Updating device attributes [force=#{force}]")
         for key, value of @.attributes
+          # @debug("#{key}=#{@['_'+ key]}") if key isnt '__proto__' and @['_'+ key]?
           @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
 
       return Promise.resolve(@_locationResponse())
