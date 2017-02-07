@@ -335,6 +335,8 @@ module.exports = (env) =>
         })
         @['_'+attributeName] = null
         @['getDistanceTo'+location.tag] = ()-> Promise.resolve(@["_"+attributeName])
+        if lastState and lastState[attributeName]
+          @['_'+attributeName] = lastState[attributeName].value or 0
 
       # device attribute initialization
       @_serial = @config.serial
@@ -348,7 +350,7 @@ module.exports = (env) =>
       @_timeSpec = lastState?.timeSpec?.value or new Date(@_timeStamp).format(@timeformat)
       @_suspended = lastState?.suspended?.value or false
 
-      @_setTimeStamp(false)
+      @_setTimeStamp(false) # initialize @_last_* but don't clear attributes
       @_emitUpdates("Initial location update for device #{@id}", true)
 
       super()
@@ -479,6 +481,7 @@ module.exports = (env) =>
       @_gps_previous = _.clone(@_gps_last, true) if @_gps_last?
       @_gps_current = null
       if @_latitude? and @_longitude?
+        @debug("Current position: lat=#{@_latitude} long=#{@_longitude}" )
         @_gps_current = {}
         @_gps_current.latitude = @_latitude if @_latitude
         @_gps_current.longitude = @_longitude if @_longitude
@@ -490,6 +493,7 @@ module.exports = (env) =>
       if @_gps_last? and @_gps_current?
         try
           @_gps_moved = geolib.getDistance(@_gps_last, @_gps_current)
+          @debug("Distance to last known postition: #{@_gps_moved}m")
         catch error
           env.logger.error(error)
       @_gps_last = _.clone(@_gps_current, true)
@@ -510,6 +514,7 @@ module.exports = (env) =>
 
           # update distance attribute for this location
           @[attributeName] = distance
+          @debug("Distance to #{location.tag}: #{distance}m")
 
     _emitUpdates: (logMsg, force=false) ->
       env.logger.debug(logMsg)
