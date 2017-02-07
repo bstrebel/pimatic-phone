@@ -583,6 +583,10 @@ Roadmap
 Changelog
 ---------
 
+v0.7.7
+
+- bugfix device initialization from lastState
+
 v0.7.6
 
 - iCloudSuspended configuration attribute
