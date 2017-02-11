@@ -105,9 +105,11 @@ module.exports = {
           id:
             description: "iFrame device id"
             type: "string"
+            default: ""
           key:
             description: "Optional API key to be used in the iFrame URL"
             type: "string"
+            default: ""
           url:
             description: "iFrame URL template"
             type: "string"
@@ -119,6 +121,7 @@ module.exports = {
           switch:
             description: "Optional enable switch device id"
             type: "string"
+            default: ""
       xLinkTemplate:
         description: "URL template"
         type: "string"
