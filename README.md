@@ -28,7 +28,7 @@ to show the current location on a map. Default settings use the Google Maps Embe
 You have to register a project at the [Google Developer Console](https://console.developers.google.com) and
 generate an API key.
 
-<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/iframe.png" width="640">
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/config.png" width="480">
 
 
 **Some remarks on iOS devices**
@@ -48,7 +48,7 @@ generate an API key.
     As of Rev. 0.8.0 you can easily define a DummySwitch to enable/disable
     iCloud updates through the mobile frontend
 
-<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/switch.png" width="640">
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/switch.png" width="480">
 
 ```
     curl --user "admin:admin" --silent --request GET \
