@@ -18,12 +18,16 @@ module.exports = (env) =>
 
       @framework.deviceManager.registerDeviceClass('PhoneDevice', {
         configDef: deviceConfigDef.PhoneDevice,
-        createCallback: (config, lastState) => new PhoneDevice(config, lastState, @)
+        createCallback: (config, lastState) =>
+          config.iFrame = {} unless config.iFrame?
+          return new PhoneDevice(config, lastState, @)
       })
 
       @framework.deviceManager.registerDeviceClass('PhoneDeviceIOS', {
         configDef: deviceConfigDef.PhoneDeviceIOS,
-        createCallback: (config, lastState) => new PhoneDeviceIOS(config, lastState, @)
+        createCallback: (config, lastState) =>
+          config.iFrame = {} unless config.iFrame?
+          return new PhoneDeviceIOS(config, lastState, @)
       })
 
       @framework.on 'after init', =>
@@ -331,7 +335,7 @@ module.exports = (env) =>
       @pluginManager = plugin.framework.pluginManager
       @framework = plugin.framework
 
-      @_iFrame = null
+      @iFrame = null
 
       # use device specific debug flag
       # to allow changes during runtime
@@ -413,11 +417,11 @@ module.exports = (env) =>
               }
               @iframeUpdate()
             else
-              env.logger.error("Missing template URL for #{@config.iFrame?.id}")
+              env.logger.error("Missing template URL for #{@config.iFrame.id}")
             # else
             #  env.logger.error("Device #{@config.iFrame?.id} is not an iFrame!")
           else
-            env.logger.error("iFrame device #{@config.iFrame?.id} not found!")
+            env.logger.error("iFrame device #{@config.iFrame.id} not found!")
 
 
     debug: (message) =>
