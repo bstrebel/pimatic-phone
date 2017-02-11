@@ -8,7 +8,7 @@
 pimatic-phone
 =============
 
-<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshot.png" width="1020">
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/frontend.png" width="1020">
 
 A generic pimatic plugin for mobile devices to provide location based
 devices. Continuous GPS tracking and reverse geocoding are expensive in
@@ -20,6 +20,16 @@ from [icloud-promise](https://www.npmjs.com/package/icloud-promise) for **iOS** 
 
 The signature of the _updateLocation_ API call provides compatibility
 with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
+
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/iframe.png" width="1020">
+
+With revision Rev. 0.8.0 an iframeDevice from pimatic-iframe can be utilized
+to show the current location on a map. Default settings use the Google Maps Embed API.
+You have to register a project at the [Google Developer Console](https://console.developers.google.com) and
+generate an API key.
+
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/iframe.png" width="640">
+
 
 **Some remarks on iOS devices**
 
@@ -35,6 +45,10 @@ with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location
     or [pimatic-cron](https://pimatic.org/plugins/pimatic-cron/) to trigger the suspend by executing (inspired by a request
     at the [pimatic forum](https://forum.pimatic.org/topic/2719/pimatic-phone-icloud-error/37)). This feature could not be used if you have
     two factor authentication activated. See 2FA remarks (see below).
+    As of Rev. 0.8.0 you can easily define a DummySwitch to enable/disable
+    iCloud updates through the mobile frontend
+
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/switch.png" width="640">
 
 ```
     curl --user "admin:admin" --silent --request GET \
@@ -575,13 +589,19 @@ Roadmap
 
 * ~~Generate HTML links to display device location in Google Maps~~
 * ~~Generate HTML links to display device location in Open Street Map~~
-* Display current location in maps iframe (Google/OSM)
+* ~~Display current location in maps iframe (Google/OSM)~~
 * ~~Add distance attribute (distance between geo locations)~~
 * Use Google Maps and/or OSM for route calculations
 * Add route attribute (routing distance road)
 
 Changelog
 ---------
+
+v0.8.0
+
+- use pimatic-iframe for device location
+- use DummySwitch for iCloud update suspend
+
 
 v0.7.7
 

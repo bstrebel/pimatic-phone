@@ -6,8 +6,9 @@ module.exports = (env) =>
 
   geolib = require 'geolib'
 
+  ############################################
   class PhonePlugin extends env.plugins.Plugin
-
+  ############################################
 
     init: (app, @framework, @config) =>
 
@@ -80,7 +81,9 @@ module.exports = (env) =>
   plugin = new PhonePlugin
 
 
+  ############################################
   class PhoneDevice extends env.devices.Device
+  ############################################
 
     attributes:
       timeSpec:
@@ -645,9 +648,6 @@ module.exports = (env) =>
 
     iframeUpdate: () ->
       return unless @iFrame? and @_latitude? and @_longitude?
-      # replaced by iframeHandler
-      # if @iFrame.switch?
-      #   @iFrame.switch.getState().then( (state) => @config.iFrame.enabled = state )
       return unless @iFrame.enabled
       url = @iFrame.url
         .replace("{key}", @iFrame.key)
@@ -674,7 +674,10 @@ module.exports = (env) =>
         response.gps = _.clone(@_gps_current, true) if @_gps_current?
       return response
 
+
+  ########################################
   class PhoneDeviceIOS extends PhoneDevice
+  ########################################
 
     # require 'coffee-script/register'
     icloud = require 'icloud-promise'
