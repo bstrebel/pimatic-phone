@@ -17,6 +17,27 @@ module.exports = {
         description: "Radius (m) for GPS mapping"
         type: "number"
         default: 250
+      iFrame:
+        description: "iFrame configuration"
+        type: "object"
+        properties:
+          id:
+            description: "iFrame device id"
+            type: "string"
+          key:
+            description: "Optional API key to be used in the iFrame URL"
+            type: "string"
+          url:
+            description: "iFrame URL template"
+            type: "string"
+            default: "https://www.google.com/maps/embed/v1/place?key={key}&q={latitude}+{longitude}"
+          enabled:
+            description: "Enable iFrame updates"
+            type: "boolean"
+            default: false
+          switch:
+            description: "Optional enable switch device id"
+            type: "string"
       xLinkTemplate:
         description: "URL template"
         type: "string"
@@ -54,6 +75,10 @@ module.exports = {
         description: "iCloud updates suspended"
         type: "boolean"
         default: false
+      iCloudSwitch:
+        description: "iCloud suspend switch device id"
+        type: "string"
+        default: ""
       iCloudTimezone:
         description: "iCloud client timezone"
         type: "string"
@@ -70,6 +95,27 @@ module.exports = {
         description: "Log new position only if significantly moved"
         type: "number"
         default: 250
+      iFrame:
+        description: "iFrame configuration"
+        type: "object"
+        properties:
+          id:
+            description: "iFrame device id"
+            type: "string"
+          key:
+            description: "Optional API key to be used in the iFrame URL"
+            type: "string"
+          url:
+            description: "iFrame URL template"
+            type: "string"
+            default: "https://www.google.com/maps/embed/v1/place?key={key}&q={latitude}+{longitude}"
+          enabled:
+            description: "Enable iFrame updates"
+            type: "boolean"
+            default: false
+          switch:
+            description: "Optional enable switch device id"
+            type: "string"
       xLinkTemplate:
         description: "URL template"
         type: "string"

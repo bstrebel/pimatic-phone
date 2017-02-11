@@ -8,7 +8,11 @@ module.exports = (env) =>
 
   class PhonePlugin extends env.plugins.Plugin
 
+
     init: (app, @framework, @config) =>
+
+      @_afterInit = false
+
       @debug = @config.debug || false
       deviceConfigDef = require('./device-config-schema.coffee')
 
@@ -21,6 +25,12 @@ module.exports = (env) =>
         configDef: deviceConfigDef.PhoneDeviceIOS,
         createCallback: (config, lastState) => new PhoneDeviceIOS(config, lastState, @)
       })
+
+      @framework.on 'after init', =>
+        @_afterInit = true
+
+    afterInit: () =>
+      return @_afterInit
 
     tagFromGPS: (position, accuracy) =>
       result = {distance: null, tag: 'unknown'}
@@ -316,6 +326,12 @@ module.exports = (env) =>
       # get phone plugin settings
       # @debug = plugin.config.debug || false
       @timeformat = plugin.config.timeformat
+      @deviceManager = plugin.framework.deviceManager
+      @variableManager = plugin.framework.variableManager
+      @pluginManager = plugin.framework.pluginManager
+      @framework = plugin.framework
+
+      @_iFrame = null
 
       # use device specific debug flag
       # to allow changes during runtime
@@ -356,12 +372,61 @@ module.exports = (env) =>
       @_setTimeStamp(false) # initialize @_last_* but don't clear attributes
       @_emitUpdates("Initial location update for device #{@id}", true)
 
+      @framework.on 'after init', =>
+        # run once after system init
+        @_init()
+
+      if plugin.afterInit()
+        # and after recreation: constructor == true and afterInit == false
+        @_init()
+
+    iframeHandler = (state) ->
+      # this == switch device !!!
+      @phone.iFrame.enabled = state
+      @phone.config.iFrame.enabled
+      @phone.debug("@iFrame[enabled] set to #{@phone.iFrame.enabled}")
+
+    _init: () =>
+      @debug("PhoneDevice Initialization")
+      iFramePlugin = @pluginManager.getPlugin('iframe')
+      if iFramePlugin?
+        @debug("Found pimatic-iframe plugin")
+        if !!@config.iFrame?.id
+          iFrame = @deviceManager.getDeviceById(@config.iFrame.id)
+          if iFrame?
+            @debug("Using iFrame device #{iFrame.id}")
+            # TODO: check instance of plugin device ???
+            # if iFrame instanceof iFramePlugin.iframeDevice
+            actuator = @deviceManager.getDeviceById(@config.iFrame.switch)
+            if actuator? and actuator instanceof env.devices.SwitchActuator
+              @debug("Using switch #{actuator.id}")
+              actuator.changeStateTo(@config.iFrame.enabled)
+              actuator.phone = @
+              actuator.on 'state', iframeHandler
+            if !!@config.iFrame.url
+              @iFrame = {
+                device: iFrame
+                key: @config.iFrame.key
+                url: @config.iFrame.url
+                enabled: @config.iFrame.enabled
+                switch: actuator
+              }
+              @iframeUpdate()
+            else
+              env.logger.error("Missing template URL for #{@config.iFrame?.id}")
+            # else
+            #  env.logger.error("Device #{@config.iFrame?.id} is not an iFrame!")
+          else
+            env.logger.error("iFrame device #{@config.iFrame?.id} not found!")
+
 
     debug: (message) =>
       if @debug
         env.logger.debug("Device #{@id}: " + message)
 
     destroy: () ->
+      if @iFrame.switch?
+        @iFrame.switch.removeListener 'state', iframeHandler
       super()
 
     fetchLocation: () ->
@@ -545,6 +610,7 @@ module.exports = (env) =>
         for key, value of @.attributes
           # @debug("#{key}=#{@['_'+ key]}") if key isnt '__proto__' and @['_'+ key]?
           @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
+        @iframeUpdate()
 
       return Promise.resolve(@_locationResponse())
 
@@ -572,6 +638,19 @@ module.exports = (env) =>
       location = plugin.locationFromTag(@_tag)
       @_latitude = location?.gps?.latitude or null
       @_longitude = location?.gps?.longitude or null
+
+    iframeUpdate: () ->
+      return unless @iFrame? and @_latitude? and @_longitude?
+      # replaced by iframeHandler
+      # if @iFrame.switch?
+      #   @iFrame.switch.getState().then( (state) => @config.iFrame.enabled = state )
+      return unless @iFrame.enabled
+      url = @iFrame.url
+        .replace("{key}", @iFrame.key)
+        .replace("{latitude}", @_latitude.toString())
+        .replace("{longitude}", @_longitude.toString())
+      @debug("Reload iFrame with #{url}")
+      @iFrame.device.loadIFrameWith(url)
 
     _locationResponse: (previous=false) =>
       response = {}
@@ -667,6 +746,23 @@ module.exports = (env) =>
                 env.logger.error("Login failed for \"#{@iCloudUser}\", " + error.message)
               )
 
+    suspendHandler = (state) ->
+      # this == switch device !!!
+      @phone.iCloudSuspended = !state
+      @phone.config.iCloudSuspended = @iCloudSuspended
+      @phone.debug("@iCloudSuspended set to #{@phone.iCloudSuspended}")
+
+    _init: () =>
+      @debug("PhoneDeviceIOS initialization")
+      @iCloudSwitch = @deviceManager.getDeviceById(@config.iCloudSwitch)
+      if @iCloudSwitch? and @iCloudSwitch instanceof env.devices.SwitchActuator
+        @debug("Using switch #{@iCloudSwitch.id}")
+        @iCloudSwitch.changeStateTo(! @iCloudSuspended)
+        @iCloudSwitch.phone = @
+        @iCloudSwitch.on 'state', suspendHandler
+
+      super()
+
     destroy: () ->
       clearInterval @intervalId if @intervalId?
       clearInterval @refreshClientId if @refreshClientId?
@@ -678,6 +774,9 @@ module.exports = (env) =>
         .catch( (error) ->
           env.logger.debug("iCloud session logout failed: " + error.message)
         )
+        if @iCloudSwitch?
+          @iCloudSwitch.removeListener 'state', suspendHandler
+
       super()
 
     disableUpdates: () =>
