@@ -432,7 +432,7 @@ module.exports = (env) =>
         env.logger.debug("Device #{@id}: " + message)
 
     destroy: () ->
-      if @iFrame.switch?
+      if @iFrame?.switch?
         @iFrame.switch.removeListener 'state', iframeHandler
       super()
 
