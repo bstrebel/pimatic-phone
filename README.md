@@ -597,6 +597,11 @@ Roadmap
 Changelog
 ---------
 
+v0.8.2
+
+- bugfix device recreation error
+
+
 v0.8.0
 
 - use pimatic-iframe for device location
