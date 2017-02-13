@@ -217,13 +217,6 @@ module.exports = (env) =>
         acronym: 'GPS'
         displaySparkline: false
         hidden: true
-      suspended:
-        label: "Suspended"
-        description: "iCloud updates suspended"
-        type: t.boolean
-        acronym: 'OFF'
-        displaySparkline: false
-        hidden: true
 
     actions:
       update:
@@ -287,23 +280,10 @@ module.exports = (env) =>
             type: t.number
           updateAddress:
             type: t.number
-      suspend:
-        description: "Suspend iCloud location updates"
-        params:
-          flag:
-            type: t.string
       fetchLocation:
         description: "Return current device location"
       fetchPreviousLocation:
         description: "Return previous device location"
-      disableUpdates:
-        description: "Disable iCloud location updates"
-      enableUpdates:
-        description: "Enable iCloud location updates"
-        params:
-          code:
-            description: "iCloud 2FA verification code code"
-            type: t.string
 
     # attribute getter methods
     getSource: () -> Promise.resolve(@_source)
@@ -533,13 +513,6 @@ module.exports = (env) =>
       env.logger.debug("Legacy updateLocation: updateAddress [#{updateAddress}] ignored.")
       return @_emitUpdates("Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude}")
 
-    disableUpdates: () ->
-      throw new Error("Call [disableUpdates] only available for iOS devices")
-    enableUpdates: (code) ->
-      throw new Error("Call [enableUpdates?=#{code}] only available for iOS devices")
-    suspend: (flag) ->
-      throw new Error("Call [suspend?flag=#{flag}] only available for iOS devices")
-
     _gpsFromTaskerLocation: (loc) ->
       gps = {}
       if ! loc.startsWith('%')
@@ -694,6 +667,36 @@ module.exports = (env) =>
       @iCloudSuspended = @config.iCloudSuspended
       @iCloudClient = null
 
+      # extend PhoneDevice attributes
+      @attributes = _.clone(@attributes)
+      @attributes['suspended'] = {
+        label: "Suspended"
+        description: "iCloud updates suspended"
+        type: t.boolean
+        acronym: 'OFF'
+        displaySparkline: false
+        hidden: true
+      }
+
+      # extend PhoneDevice actions
+      @actions = _.clone(@actions)
+      @actions['suspend'] = {
+        description: "Suspend iCloud location updates"
+        params:
+          flag:
+            type: t.string
+      }
+      @actions['disableUpdates'] = {
+        description: "Disable iCloud location updates"
+      }
+      @actions['enableUpdates'] = {
+        description: "Enable iCloud location updates"
+        params:
+          code:
+            description: "iCloud 2FA verification code code"
+            type: t.string
+      }
+
       @config.iCloudVerify = '000000'
 
       if @iCloudInterval > 0
@@ -752,6 +755,13 @@ module.exports = (env) =>
               .catch( (error) =>
                 env.logger.error("Login failed for \"#{@iCloudUser}\", " + error.message)
               )
+
+    disableUpdates: () ->
+      throw new Error("Call [disableUpdates] only available for iOS devices")
+    enableUpdates: (code) ->
+      throw new Error("Call [enableUpdates?=#{code}] only available for iOS devices")
+    suspend: (flag) ->
+      throw new Error("Call [suspend?flag=#{flag}] only available for iOS devices")
 
     suspendHandler = (state) ->
       # this == switch device !!!
