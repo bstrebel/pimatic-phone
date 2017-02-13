@@ -308,7 +308,6 @@ module.exports = (env) =>
     getCell: () -> Promise.resolve(@_cell)
     getSsid: () -> Promise.resolve(@_ssid)
     getGps: () -> Promise.resolve(@_gps)
-    getSuspended: () -> Promise.resolve(@_suspended)
 
     constructor: (@config, lastState, plugin) ->
       # phone device configuration
@@ -356,7 +355,6 @@ module.exports = (env) =>
       @_longitude = lastState?.longitude?.value or null
       @_timeStamp = lastState?.timeStamp?.value or new Date().getTime()
       @_timeSpec = lastState?.timeSpec?.value or new Date(@_timeStamp).format(@timeformat)
-      @_suspended = lastState?.suspended?.value or false
 
       super()
 
@@ -669,6 +667,8 @@ module.exports = (env) =>
     # require 'coffee-script/register'
     icloud = require 'icloud-promise'
 
+    getSuspended: () -> Promise.resolve(@_suspended)
+
     constructor: (@config, lastState, plugin) ->
 
       # extend PhoneDevice attributes
@@ -701,6 +701,8 @@ module.exports = (env) =>
             type: t.string
       }
 
+      @_suspended = laststate?.suspended?.value or true
+
       super(@config, lastState, plugin)
 
       @iCloudUser = @config.iCloudUser
@@ -710,9 +712,11 @@ module.exports = (env) =>
       @iCloudVerify = @config.iCloudVerify
       @iCloudTimezone = @config.iCloudTimezone
       @iCloudSessionTimeout = @config.iCloudSessionTimeout
-      @iCloudSuspended = @config.iCloudSuspended
-      @iCloudClient = null
 
+      # @_suspended = @config.iCloudSuspended
+      @_suspendState(@config.iCloudSuspended)
+      
+      @iCloudClient = null
 
       @config.iCloudVerify = '000000'
 
@@ -773,18 +777,12 @@ module.exports = (env) =>
                 env.logger.error("Login failed for \"#{@iCloudUser}\", " + error.message)
               )
 
-    suspendHandler = (state) ->
-      # this == switch device !!!
-      @phone.iCloudSuspended = !state
-      @phone.config.iCloudSuspended = @iCloudSuspended
-      @phone.debug("@iCloudSuspended set to #{@phone.iCloudSuspended}")
-
     _init: () =>
       @debug("PhoneDeviceIOS initialization")
       @iCloudSwitch = @deviceManager.getDeviceById(@config.iCloudSwitch)
       if @iCloudSwitch? and @iCloudSwitch instanceof env.devices.SwitchActuator
         @debug("Using switch #{@iCloudSwitch.id}")
-        @iCloudSwitch.changeStateTo(! @iCloudSuspended)
+        # @iCloudSwitch.changeStateTo(! @_suspended)
         @iCloudSwitch.phone = @
         @iCloudSwitch.on 'state', suspendHandler
 
@@ -849,16 +847,25 @@ module.exports = (env) =>
         env.logger.warn("Use disable/enableUpdates call for 2FA enabled accounts!")
       @_suspendState(flag.toUpperCase() in ['ON','AN','TRUE','JA','YES','1','EIN'])
       # throw new Error("Error!")
-      return Promise.resolve(@iCloudSuspended)
+      return Promise.resolve(@_suspended)
 
-    _suspendState: (flag) =>
-      @iCloudSuspended = flag
-      @config.iCloudSuspended = flag
+    suspendHandler = (state) ->
+      # this == switch device !!!
+      @phone._suspendState(!state, true)
+      #@phone.iCloudSuspended = !state
+      #@phone.config.iCloudSuspended = @iCloudSuspended
+      #@phone.debug("@iCloudSuspended set to #{@phone.iCloudSuspended}")
+
+    _suspendState: (flag, handler = false) =>
+      return unless @_suspended isnt flag
       @_suspended = flag
       @emit @suspended, @_suspended
-      state = if flag then 'disabled' else 'enabled'
+      # @config.iCloudSuspended = flag
+      if @iCloudSwitch?
+        @iCloudSwitch.changeStateTo(!@_suspended) unless handler
+      state = if @_suspended then 'disabled' else 'enabled'
       env.logger.info("Location updates for \"#{@iCloudDevice}\": [#{state}]")
-      return flag
+      return Promise.resolve(@_suspended)
 
     _refreshWebAuth: () =>
       @iCloudClient.refreshWebAuth()
@@ -895,7 +902,7 @@ module.exports = (env) =>
       )
 
     _updateDevice: () =>
-      if @iCloudSuspended
+      if @_suspended
         env.logger.debug("Location update for \"#{@iCloudDevice}\" suspended. \
           Skipping refresh call ...")
       else

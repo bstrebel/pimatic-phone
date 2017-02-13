@@ -73,9 +73,9 @@ module.exports = (env) ->
           if state then Promise.resolve __("would set suspend of %s to true", @device.name)
           else Promise.resolve __("would set suspend of %s to false", @device.name)
         else
-          if state then @device.suspend(state).then( =>
+          if state then @device._suspendState(state).then( =>
             __("set suspend of %s to true", @device.name) )
-          else @device.suspend(state).then( =>
+          else @device._suspendState(state).then( =>
             __("set suspend %s to false", @device.name) )
       )
 
