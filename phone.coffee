@@ -5,6 +5,8 @@ module.exports = (env) =>
   t = env.require('decl-api').types
 
   geolib = require 'geolib'
+  actions = require('./actions.coffee')(env)
+  predicates = require('./predicates.coffee')(env)
 
   ############################################
   class PhonePlugin extends env.plugins.Plugin
@@ -30,6 +32,9 @@ module.exports = (env) =>
           config.iFrame = {} unless config.iFrame?
           return new PhoneDeviceIOS(config, lastState, @)
       })
+
+      @framework.ruleManager.addActionProvider(new actions.SetSuspendActionProvider(@framework))
+      #@framework.ruleManager.addPredicateProvider(new predicates.TagPredicateProvider(@framework))
 
       @framework.on 'after init', =>
         @_afterInit = true
@@ -513,6 +518,15 @@ module.exports = (env) =>
       env.logger.debug("Legacy updateLocation: updateAddress [#{updateAddress}] ignored.")
       return @_emitUpdates("Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude}")
 
+    ###
+    disableUpdates: () ->
+      throw new Error("Call [disableUpdates] only available for iOS devices")
+    enableUpdates: (code) ->
+      throw new Error("Call [enableUpdates?=#{code}] only available for iOS devices")
+    suspend: (flag) ->
+      throw new Error("Call [suspend?flag=#{flag}] only available for iOS devices")
+    ###
+
     _gpsFromTaskerLocation: (loc) ->
       gps = {}
       if ! loc.startsWith('%')
@@ -656,16 +670,6 @@ module.exports = (env) =>
     icloud = require 'icloud-promise'
 
     constructor: (@config, lastState, plugin) ->
-      super(@config, lastState, plugin)
-      @iCloudUser = @config.iCloudUser
-      @iCloudPass = @config.iCloudPass
-      @iCloudDevice = @config.iCloudDevice
-      @iCloudInterval = @config.iCloudInterval
-      @iCloudVerify = @config.iCloudVerify
-      @iCloudTimezone = @config.iCloudTimezone
-      @iCloudSessionTimeout = @config.iCloudSessionTimeout
-      @iCloudSuspended = @config.iCloudSuspended
-      @iCloudClient = null
 
       # extend PhoneDevice attributes
       @attributes = _.clone(@attributes)
@@ -696,6 +700,19 @@ module.exports = (env) =>
             description: "iCloud 2FA verification code code"
             type: t.string
       }
+
+      super(@config, lastState, plugin)
+
+      @iCloudUser = @config.iCloudUser
+      @iCloudPass = @config.iCloudPass
+      @iCloudDevice = @config.iCloudDevice
+      @iCloudInterval = @config.iCloudInterval
+      @iCloudVerify = @config.iCloudVerify
+      @iCloudTimezone = @config.iCloudTimezone
+      @iCloudSessionTimeout = @config.iCloudSessionTimeout
+      @iCloudSuspended = @config.iCloudSuspended
+      @iCloudClient = null
+
 
       @config.iCloudVerify = '000000'
 
@@ -755,13 +772,6 @@ module.exports = (env) =>
               .catch( (error) =>
                 env.logger.error("Login failed for \"#{@iCloudUser}\", " + error.message)
               )
-
-    disableUpdates: () ->
-      throw new Error("Call [disableUpdates] only available for iOS devices")
-    enableUpdates: (code) ->
-      throw new Error("Call [enableUpdates?=#{code}] only available for iOS devices")
-    suspend: (flag) ->
-      throw new Error("Call [suspend?flag=#{flag}] only available for iOS devices")
 
     suspendHandler = (state) ->
       # this == switch device !!!
