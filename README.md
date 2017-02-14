@@ -597,6 +597,10 @@ Roadmap
 Changelog
 ---------
 
+v0.8.3
+
+- suspend attribute refactoring
+
 v0.8.2
 
 - bugfix device recreation error
