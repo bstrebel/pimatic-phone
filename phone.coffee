@@ -412,7 +412,7 @@ module.exports = (env) =>
 
     debug: (message) =>
       if @debug
-        env.logger.debug("Device #{@id}: " + message)
+        env.logger.debug("Device #{@config.id}: " + message)
 
     destroy: () ->
       if @iFrame?.switch?
@@ -667,7 +667,7 @@ module.exports = (env) =>
     # require 'coffee-script/register'
     icloud = require 'icloud-promise'
 
-    _suspended = null
+    # _suspended = null
     getSuspended: () -> Promise.resolve(@_suspended)
 
     constructor: (@config, lastState, plugin) ->
@@ -702,9 +702,15 @@ module.exports = (env) =>
             type: t.string
       }
 
-      @_suspended = laststate?.suspended?.value or true
+      if lastState?.suspended?
+        @_suspended = lastState.suspended.value
+        console.log("Suspend state initialized from lastState: #{@_suspended}")
+      else
+        @_suspended = false
+        console.log("Suspend state initialized to default: #{@_suspended}")
 
       super(@config, lastState, plugin)
+
 
       @iCloudUser = @config.iCloudUser
       @iCloudPass = @config.iCloudPass
@@ -714,10 +720,11 @@ module.exports = (env) =>
       @iCloudTimezone = @config.iCloudTimezone
       @iCloudSessionTimeout = @config.iCloudSessionTimeout
 
-      @_suspended = @config.iCloudSuspended
-      @_suspendState(@config.iCloudSuspended)
-      
+      # @_suspended = @config.iCloudSuspended
+      # @_suspendState(@config.iCloudSuspended)
+
       @iCloudClient = null
+      @iCloudSwitch = null
 
       @config.iCloudVerify = '000000'
 
@@ -780,13 +787,21 @@ module.exports = (env) =>
 
     _init: () =>
       @debug("PhoneDeviceIOS initialization")
+      @debug("Using suspend state [#{@config.iCloudSuspended}] from config")
       @iCloudSwitch = @deviceManager.getDeviceById(@config.iCloudSwitch)
       if @iCloudSwitch? and @iCloudSwitch instanceof env.devices.SwitchActuator
         @debug("Using switch #{@iCloudSwitch.id}")
-        # @iCloudSwitch.changeStateTo(! @_suspended)
-        @iCloudSwitch.phone = @
-        @iCloudSwitch.on 'state', suspendHandler
+        @iCloudSwitch.changeStateTo(!@config.iCloudSwitch)
+        if not _.find(@iCloudSwitch._events['state'], (handler) -> handler == suspendHandler)
+          @debug("Added event handler to #{@iCloudSwitch.id}")
+          @iCloudSwitch.phone = @
+          @iCloudSwitch.on 'state', suspendHandler
+        else
+          @debug("Event handler already installed for #{@iCloudSwitch.id}")
+      else
+        @debug("Continue without suspend switch ...")
 
+      @_suspendState(@config.iCloudSuspended)
       super()
 
     destroy: () ->
@@ -857,15 +872,29 @@ module.exports = (env) =>
       #@phone.config.iCloudSuspended = @iCloudSuspended
       #@phone.debug("@iCloudSuspended set to #{@phone.iCloudSuspended}")
 
-    _suspendState: (flag, handler = false) =>
-      return unless @_suspended isnt flag
-      @_suspended = flag
-      @emit 'suspended', @_suspended
-      # @config.iCloudSuspended = flag
-      if @iCloudSwitch?
-        @iCloudSwitch.changeStateTo(!@_suspended) unless handler
+    _suspendState: (flag, handler=false) =>
+      @debug("_suspendState(flag=#{flag}, handler=#{handler})")
+      @debug("@_suspended=#{@_suspended}, switch=#{@iCloudSwitch?._state}, config=#{@config.iCloudSuspended}")
+      if not handler
+        # update associated control switch
+        if @iCloudSwitch?
+          if @iCloudSwitch._state is flag
+            @debug("Updating control switch #{@iCloudSwitch.id}: #{!flag}")
+            @iCloudSwitch.changeStateTo(!flag)
+          else
+            @debug("iCloudSwitch already set to #{@iCloudSwitch._state}")
+        else
+          @debug("iCloudSwitch not defined")
+
+      if flag != @_suspended
+        @debug("Updating suspended attribute: #{flag}")
+        @_suspended = flag
+        @emit 'suspended', @_suspended
+      if @config.iCloudSuspended != @_suspended
+        @debug("Updating configuration: #{@_suspended}")
+        @config.iCloudSuspended = @_suspended
       state = if @_suspended then 'disabled' else 'enabled'
-      env.logger.info("Location updates for \"#{@iCloudDevice}\": [#{state}]")
+      env.logger.info("iCloud location updates for \"#{@config.iCloudDevice}\" #{state}")
       return Promise.resolve(@_suspended)
 
     _refreshWebAuth: () =>
@@ -903,11 +932,12 @@ module.exports = (env) =>
       )
 
     _updateDevice: () =>
-      if @_suspended
+      if this._suspended
         env.logger.debug("Location update for \"#{@iCloudDevice}\" suspended. \
           Skipping refresh call ...")
       else
         @_refreshClient().catch(() -> return false)
-        return true
+
+      return true
 
   return plugin
