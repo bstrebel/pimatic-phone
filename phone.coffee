@@ -835,7 +835,7 @@ module.exports = (env) =>
       @iCloudSuspended = flag
       @config.iCloudSuspended = flag
       @_suspended = flag
-      @emit @suspended, @_suspended
+      @emit 'suspended', @_suspended
       state = if flag then 'disabled' else 'enabled'
       env.logger.info("Location updates for \"#{@iCloudDevice}\": [#{state}]")
       return flag
