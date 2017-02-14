@@ -667,6 +667,7 @@ module.exports = (env) =>
     # require 'coffee-script/register'
     icloud = require 'icloud-promise'
 
+    _suspended = null
     getSuspended: () -> Promise.resolve(@_suspended)
 
     constructor: (@config, lastState, plugin) ->
@@ -713,7 +714,7 @@ module.exports = (env) =>
       @iCloudTimezone = @config.iCloudTimezone
       @iCloudSessionTimeout = @config.iCloudSessionTimeout
 
-      # @_suspended = @config.iCloudSuspended
+      @_suspended = @config.iCloudSuspended
       @_suspendState(@config.iCloudSuspended)
       
       @iCloudClient = null
@@ -859,7 +860,7 @@ module.exports = (env) =>
     _suspendState: (flag, handler = false) =>
       return unless @_suspended isnt flag
       @_suspended = flag
-      @emit @suspended, @_suspended
+      @emit 'suspended', @_suspended
       # @config.iCloudSuspended = flag
       if @iCloudSwitch?
         @iCloudSwitch.changeStateTo(!@_suspended) unless handler
