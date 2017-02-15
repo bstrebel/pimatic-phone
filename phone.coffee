@@ -516,15 +516,6 @@ module.exports = (env) =>
       env.logger.debug("Legacy updateLocation: updateAddress [#{updateAddress}] ignored.")
       return @_emitUpdates("Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude}")
 
-    ###
-    disableUpdates: () ->
-      throw new Error("Call [disableUpdates] only available for iOS devices")
-    enableUpdates: (code) ->
-      throw new Error("Call [enableUpdates?=#{code}] only available for iOS devices")
-    suspend: (flag) ->
-      throw new Error("Call [suspend?flag=#{flag}] only available for iOS devices")
-    ###
-
     _gpsFromTaskerLocation: (loc) ->
       gps = {}
       if ! loc.startsWith('%')
@@ -701,14 +692,8 @@ module.exports = (env) =>
             type: t.string
       }
 
-      if lastState?.suspended?
-        @iCloudSuspended = lastState.suspended.value
-        @debug("Suspend state initialized from lastState: #{@iCloudSuspended}")
-      else
-        @iCloudSuspended = false
-        @debug("Suspend state initialized to default: #{@iCloudSuspended}")
-
       super(@config, lastState, plugin)
+
       @iCloudUser = @config.iCloudUser
       @iCloudPass = @config.iCloudPass
       @iCloudDevice = @config.iCloudDevice
@@ -790,17 +775,10 @@ module.exports = (env) =>
       @iCloudSwitch = @deviceManager.getDeviceById(@config.iCloudSwitch)
       if @iCloudSwitch? and @iCloudSwitch instanceof env.devices.SwitchActuator
         @debug("Using switch #{@iCloudSwitch.id}")
-        @iCloudSwitch.changeStateTo(!@config.iCloudSwitch)
-        if not _.find(@iCloudSwitch._events['state'], (handler) -> handler == suspendHandler)
-          @debug("Added event handler to #{@iCloudSwitch.id}")
-          @iCloudSwitch.phone = @
-          @iCloudSwitch.on 'state', suspendHandler
-        else
-          @debug("Event handler already installed for #{@iCloudSwitch.id}")
-      else
-        @debug("Continue without suspend switch ...")
-
-      @_suspendState(@config.iCloudSuspended)
+        @iCloudSwitch.changeStateTo(! @config.iCloudSuspended)
+        @iCloudSwitch.removeListener 'state', suspendHandler
+        @iCloudSwitch.phone = @
+        @iCloudSwitch.on 'state', suspendHandler
       super()
       @iCloudSuspended = @config.iCloudSuspended
 
@@ -817,7 +795,6 @@ module.exports = (env) =>
         )
         if @iCloudSwitch?
           @iCloudSwitch.removeListener 'state', suspendHandler
-
       super()
 
     disableUpdates: () =>
@@ -865,37 +842,16 @@ module.exports = (env) =>
       # throw new Error("Error!")
       return Promise.resolve(@iCloudSuspended)
 
-    suspendHandler = (state) ->
-      # this == switch device !!!
-      @phone._suspendState(!state, true)
-      #@phone.iCloudSuspended = !state
-      #@phone.config.iCloudSuspended = @iCloudSuspended
-      #@phone.debug("@iCloudSuspended set to #{@phone.iCloudSuspended}")
-
-    _suspendState: (flag, handler=false) =>
-      @debug("_suspendState(flag=#{flag}, handler=#{handler})")
-      @debug("@_suspended=#{@_suspended}, switch=#{@iCloudSwitch?._state}, config=#{@config.iCloudSuspended}")
-      if not handler
-        # update associated control switch
-        if @iCloudSwitch?
-          if @iCloudSwitch._state is flag
-            @debug("Updating control switch #{@iCloudSwitch.id}: #{!flag}")
-            @iCloudSwitch.changeStateTo(!flag)
-          else
-            @debug("iCloudSwitch already set to #{@iCloudSwitch._state}")
-        else
-          @debug("iCloudSwitch not defined")
-
-      if flag != @_suspended
-        @debug("Updating suspended attribute: #{flag}")
-        @_suspended = flag
-        @emit 'suspended', @_suspended
-      if @config.iCloudSuspended != @_suspended
-        @debug("Updating configuration: #{@_suspended}")
-        @config.iCloudSuspended = @_suspended
-      state = if @_suspended then 'disabled' else 'enabled'
-      env.logger.info("iCloud location updates for \"#{@config.iCloudDevice}\" #{state}")
-      return Promise.resolve(@_suspended)
+    _suspendState: (flag) =>
+      return if @iCloudSuspended == flag
+      @iCloudSuspended = flag
+      @config.iCloudSuspended = @flag
+      @emit 'suspended', @iCloudSuspended
+      if @iCloudSwitch? and @iCloudSwitch instanceof env.devices.SwitchActuator
+        @iCloudSwitch.changeStateTo(! @iCloudSuspended)
+      state = if flag then 'disabled' else 'enabled'
+      env.logger.info("iCloud location updates for \"#{@iCloudDevice}\" #{state}")
+      return flag
 
     _refreshWebAuth: () =>
       @iCloudClient.refreshWebAuth()
