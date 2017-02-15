@@ -34,6 +34,7 @@ module.exports = (env) =>
       })
 
       @framework.ruleManager.addActionProvider(new actions.SetSuspendActionProvider(@framework))
+      @framework.ruleManager.addActionProvider(new actions.SetLocationActionProvider(@framework))
       #@framework.ruleManager.addPredicateProvider(new predicates.TagPredicateProvider(@framework))
 
       @framework.on 'after init', =>
@@ -82,6 +83,12 @@ module.exports = (env) =>
     locationFromTag: (tag) =>
       if tag?
         return _.find(@config.locations, 'tag': tag)
+
+    getTags: () =>
+      # tags = []
+      # _.forEach @config.locations, (location) ->
+      #  tags.push location.tag
+      return _.map @config.locations, 'tag'
 
   plugin = new PhonePlugin
 
@@ -767,8 +774,10 @@ module.exports = (env) =>
       # this == switch device !!!
       @phone.iCloudSuspended = !state
       @phone.config.iCloudSuspended = @phone.iCloudSuspended
+      # config attribute in edit dialog not updated
+      # @phone.framework.saveConfig()
       @phone.emit 'suspended', @phone.iCloudSuspended
-      @phone.debug("@iCloudSuspended set to #{@phone.iCloudSuspended}")
+      @phone.debug("iCloudSuspended set to #{@phone.iCloudSuspended}")
 
     _init: () =>
       @debug("PhoneDeviceIOS initialization")
@@ -781,6 +790,8 @@ module.exports = (env) =>
         @iCloudSwitch.on 'state', suspendHandler
       super()
       @iCloudSuspended = @config.iCloudSuspended
+      state = if @iCloudSuspended then 'disabled' else 'enabled'
+      env.logger.info("iCloud location updates for \"#{@config.iCloudDevice}\" #{state}")
 
     destroy: () ->
       clearInterval @intervalId if @intervalId?
@@ -851,7 +862,7 @@ module.exports = (env) =>
         @iCloudSwitch.changeStateTo(! @iCloudSuspended)
       state = if flag then 'disabled' else 'enabled'
       env.logger.info("iCloud location updates for \"#{@iCloudDevice}\" #{state}")
-      return flag
+      return Promise.resolve(flag)
 
     _refreshWebAuth: () =>
       @iCloudClient.refreshWebAuth()

@@ -83,6 +83,80 @@ module.exports = (env) ->
     hasRestoreAction: -> yes
     executeRestoreAction: (simulate) => @_doExecuteAction(simulate, (not @state))
 
+  ##################################################################
+  class SetLocationActionProvider extends env.actions.ActionProvider
+  ##################################################################
+
+    constructor: (@framework) ->
+
+    parseAction: (input, context) ->
+      retVar = null
+
+      phones = _(@framework.deviceManager.devices).values().filter(
+        (device) => device.hasAction("updateTag")
+      ).value()
+
+      # tags = [' Home', ' Office']
+
+      tags = _.map(@framework.pluginManager.getPluginConfig('phone').locations,
+        (location) -> return ' ' + location.tag)
+
+      device = null
+      tag = null
+      match = null
+
+      m = M(input, context).match(['set location of ', 'set tag of '])
+      m.matchDevice(phones, (m, _device) ->
+        m.match(' to', (m) ->
+          m.match(tags, (m, _tag) ->
+            # Already had a match with another device?
+            if device? and device.id isnt _device.id
+              context?.addError(""""#{input.trim()}" is ambiguous.""")
+              return
+            device = _device
+            tag = _tag.trim().replace('to ','')
+            match = m.getFullMatch()
+          )
+        )
+      )
+
+      if match?
+        assert device?
+        assert tag in _.map @framework.pluginManager.getPluginConfig('phone').locations, 'tag'
+        assert typeof match is "string"
+
+        return {
+          token: match
+          nextInput: input.substring(match.length)
+          actionHandler: new LocationActionHandler(device, tag)
+        }
+      else
+        return null
+
+  class LocationActionHandler extends env.actions.ActionHandler
+
+    constructor: (@device, @tag) ->
+
+    setup: ->
+      @dependOnDevice(@device)
+      super()
+
+    _doExecuteAction: (simulate, tag) =>
+      return (
+        if simulate
+          Promise.resolve __("would set location of [%s] to [%]", @device.name, tag)
+        else
+          @device.updateTag(tag).then( (response) =>
+            __("set location of [%s] to [%s]", @device.name) )
+      )
+
+    executeAction: (simulate) => @_doExecuteAction(simulate, @tag)
+    hasRestoreAction: -> yes
+    executeRestoreAction: (simulate) => @_doExecuteAction(simulate, (not @tag))
+
+
+
   return exports = {
     SetSuspendActionProvider
+    SetLocationActionProvider
   }
