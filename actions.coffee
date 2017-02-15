@@ -96,8 +96,6 @@ module.exports = (env) ->
         (device) => device.hasAction("updateTag")
       ).value()
 
-      # tags = [' Home', ' Office']
-
       tags = _.map(@framework.pluginManager.getPluginConfig('phone').locations,
         (location) -> return ' ' + location.tag)
 
