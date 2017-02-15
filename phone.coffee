@@ -511,13 +511,6 @@ module.exports = (env) =>
       env.logger.debug("Legacy updateLocation: updateAddress [#{updateAddress}] ignored.")
       return @_emitUpdates("Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude}")
 
-    disableUpdates: () ->
-      throw new Error("Call [disableUpdates] only available for iOS devices")
-    enableUpdates: (code) ->
-      throw new Error("Call [enableUpdates?=#{code}] only available for iOS devices")
-    suspend: (flag) ->
-      throw new Error("Call [suspend?flag=#{flag}] only available for iOS devices")
-
     _gpsFromTaskerLocation: (loc) ->
       gps = {}
       if ! loc.startsWith('%')
@@ -694,14 +687,8 @@ module.exports = (env) =>
             type: t.string
       }
 
-      if lastState?.suspended?
-        @iCloudSuspended = lastState.suspended.value
-        @debug("Suspend state initialized from lastState: #{@iCloudSuspended}")
-      else
-        @iCloudSuspended = false
-        @debug("Suspend state initialized to default: #{@iCloudSuspended}")
-
       super(@config, lastState, plugin)
+      
       @iCloudUser = @config.iCloudUser
       @iCloudPass = @config.iCloudPass
       @iCloudDevice = @config.iCloudDevice
@@ -787,16 +774,6 @@ module.exports = (env) =>
         @iCloudSwitch.removeListener 'state', suspendHandler
         @iCloudSwitch.phone = @
         @iCloudSwitch.on 'state', suspendHandler
-
-        ###
-        if not _.find(@iCloudSwitch._events['state'], (handler) -> handler == suspendHandler )
-          @debug("Add event handler for #{@config.iCloudSwitch}")
-          @iCloudSwitch.phone = @
-          @iCloudSwitch.on 'state', suspendHandler
-        else
-          @debug("Found event handler for #{@config.iCloudSwitch}")
-        ###
-
       super()
       @iCloudSuspended = @config.iCloudSuspended
 
@@ -813,7 +790,6 @@ module.exports = (env) =>
         )
         if @iCloudSwitch?
           @iCloudSwitch.removeListener 'state', suspendHandler
-
       super()
 
     disableUpdates: () =>
@@ -869,7 +845,7 @@ module.exports = (env) =>
       if @iCloudSwitch? and @iCloudSwitch instanceof env.devices.SwitchActuator
         @iCloudSwitch.changeStateTo(! @iCloudSuspended)
       state = if flag then 'disabled' else 'enabled'
-      env.logger.info("Location updates for \"#{@iCloudDevice}\": [#{state}]")
+      env.logger.info("iCloud location updates for \"#{@iCloudDevice}\" #{state}")
       return flag
 
     _refreshWebAuth: () =>
