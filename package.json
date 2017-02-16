@@ -29,7 +29,8 @@
     "lodash": "^4.17.4",
     "node-uuid": "^1.4.7",
     "request": "^2.79.0",
-    "request-promise": "^4.1.1"
+    "request-promise": "^4.1.1",
+    "string": "^3.3.3"
   },
   "scripts": {
     "test": "grunt test"
