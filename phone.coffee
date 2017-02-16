@@ -706,6 +706,7 @@ module.exports = (env) =>
       @iCloudDevice = @config.iCloudDevice
       @iCloudInterval = @config.iCloudInterval
       @iCloudVerify = @config.iCloudVerify
+      @iCloudVerifyVariable = @config.iCloudVerifyVariable
       @iCloud2FA = @config.iCloud2FA
       @iCloudTimezone = @config.iCloudTimezone
       @iCloudSessionTimeout = @config.iCloudSessionTimeout
@@ -829,8 +830,11 @@ module.exports = (env) =>
         return Promise.resolve("iCloud location updates for #{@iCloudDevice} disabled!")
 
     enableUpdates: (code) =>
+      if code.startsWith('$')
+        code = @framework.variableManager.getVariableValue(code.substr(1))
       @iCloudVerify = code
       @iCloudClient.verify = code
+      env.logger.info("Using verification code [#{code}]")
       if not @iCloudClient.hsaChallengeRequired
         env.logger.warn("Use suspend?flag=true call for 2FA disabled accounts!")
       if @iCloudClient.authenticated

@@ -66,6 +66,10 @@ module.exports = {
         description: "iCloud 2FA verification code"
         type: "string"
         default: "000000"
+      iCloudVerifyVariable:
+        description: "Name of the $variable providing the code"
+        type: "string"
+        default: ""
       iCloudDevice:
         description: "iCloud device name"
         type: "string"

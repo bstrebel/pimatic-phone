@@ -43,7 +43,7 @@ module.exports = (env) ->
           if !suspend and device?.iCloud2FA
             m.match(' with ')
             .matchStringWithVars( (m, c) ->
-              code = c[0].trim().replace(/"/g, "")
+              code = _.clone(c)
               match = m.getFullMatch()
             )
         )
@@ -80,8 +80,14 @@ module.exports = (env) ->
                 Promise.resolve("disable updates for #{@device.id}" )
               )
             else
-              @device.enableUpdates(code).then( (response) =>
-                Promise.resolve("enable updates for #{@device.id} with #{code}" )
+              if code.length == 1
+                _code = code[0].trim().replace(/"/g, "")
+              else if code.length == 3 and code[1].startsWith('$')
+                _code = code[1]
+              else
+                _code = '000000'
+              @device.enableUpdates(_code).then( (response) =>
+                Promise.resolve("enable updates for #{@device.id} with #{_code}" )
               )
           else
               action = if suspend then "suspend" else "resume"
