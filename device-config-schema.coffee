@@ -58,6 +58,10 @@ module.exports = {
         description: "iCloud password"
         type: "string"
         default: ""
+      iCloud2FA:
+        description: "iCloud 2FA"
+        type: "boolean"
+        default: false
       iCloudVerify:
         description: "iCloud 2FA verification code"
         type: "string"

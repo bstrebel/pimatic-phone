@@ -706,6 +706,7 @@ module.exports = (env) =>
       @iCloudDevice = @config.iCloudDevice
       @iCloudInterval = @config.iCloudInterval
       @iCloudVerify = @config.iCloudVerify
+      @iCloud2FA = @config.iCloud2FA
       @iCloudTimezone = @config.iCloudTimezone
       @iCloudSessionTimeout = @config.iCloudSessionTimeout
       @iCloudSuspended = @config.iCloudSuspended
@@ -727,6 +728,8 @@ module.exports = (env) =>
                 @iCloudUser, @iCloudPass, @iCloudVerify, @iCloudTimezone)
               @iCloudClient.login()
               .then( () =>
+                @iCloud2FA = @iCloudClient.hsaChallengeRequired
+                @config.iCloud2FA = @iCloudClient.hsaChallengeRequired
                 if @iCloudClient.hsaChallengeRequired
                   env.logger.warn("Detected 2FA for \"#{@iCloudUser}\". \
                     Some limitations may apply, see documentation for details!")
