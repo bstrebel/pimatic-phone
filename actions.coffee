@@ -24,7 +24,7 @@ module.exports = (env) ->
     parseAction: (input, context) ->
 
       phones = _(@framework.deviceManager.devices).values().filter(
-        (device) => device.hasAction("suspend")
+        (device) -> device.hasAction("suspend")
       ).value()
 
       device = null
@@ -90,10 +90,10 @@ module.exports = (env) ->
                 Promise.resolve("enable updates for #{@device.id} with #{_code}" )
               )
           else
-              action = if suspend then "suspend" else "resume"
-              @device.suspend(suspend.toString()).then( =>
-                Promise.resolve("#{action} #{@device.id}")
-              )
+            action = if suspend then "suspend" else "resume"
+            @device.suspend(suspend.toString()).then( =>
+              Promise.resolve("#{action} #{@device.id}")
+            )
       )
 
     executeAction: (simulate) => @_doExecuteAction(simulate, @suspend, @code)
@@ -111,7 +111,7 @@ module.exports = (env) ->
       retVar = null
 
       phones = _(@framework.deviceManager.devices).values().filter(
-        (device) => device.hasAction("updateTag")
+        (device) -> device.hasAction("updateTag")
       ).value()
 
       tags = _.map(@framework.pluginManager.getPluginConfig('phone').locations,
