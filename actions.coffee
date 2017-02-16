@@ -23,35 +23,37 @@ module.exports = (env) ->
 
     parseAction: (input, context) ->
 
-      retVar = null
       phones = _(@framework.deviceManager.devices).values().filter(
         (device) => device.hasAction("suspend")
       ).value()
 
       device = null
-      state = null
+      suspend = null
+      code = null
       match = null
 
-      # Try to match the input string with:
-      M(input, context)
-      .match(['suspend ', 'resume '], (next, flag) =>
-        next.matchDevice(phones, (next, d) =>
+      m = M(input, context).match(['suspend ', 'resume '], (m, s) ->
+        suspend = s.trim() == 'suspend'
+        m.matchDevice(phones, (m, d) ->
           if device? and device.id isnt d.id
             context?.addError(""""#{input.trim()}" is ambiguous.""")
             return
           device = d
-          state = (flag.trim() is 'suspend')
-          match = next.getFullMatch()
+          match = m.getFullMatch()
+          if !suspend and device?.iCloud2FA
+            m.match(' with ')
+            .matchStringWithVars( (m, c) ->
+              code = c[0].trim().replace(/"/g, "")
+              match = m.getFullMatch()
+            )
         )
       )
-
       if match?
         assert device?
-        assert typeof match is "string"
         return {
           token: match
           nextInput: input.substring(match.length)
-          actionHandler: new SuspendActionHandler(device, state)
+          actionHandler: new SuspendActionHandler(device, suspend, code)
         }
       else
         return null
@@ -61,27 +63,37 @@ module.exports = (env) ->
   class SuspendActionHandler extends env.actions.ActionHandler
   #############################################################
 
-    constructor: (@device, @state) ->
+    constructor: (@device, @suspend, @code) ->
 
     setup: ->
       @dependOnDevice(@device)
       super()
 
-    _doExecuteAction: (simulate, state) =>
+    _doExecuteAction: (simulate, suspend, code) =>
       return (
         if simulate
-          if state then Promise.resolve __("would set suspend of %s to true", @device.name)
-          else Promise.resolve __("would set suspend of %s to false", @device.name)
+          Promise.resolve("would set suspend of #{@device.id} to #{suspend}")
         else
-          if state then @device._suspendState(state).then( =>
-            __("set suspend of %s to true", @device.name) )
-          else @device._suspendState(state).then( =>
-            __("set suspend %s to false", @device.name) )
+          if @device.iCloud2FA
+            if suspend
+              @device.disableUpdates().then(  =>
+                Promise.resolve("disable updates for #{@device.id}" )
+              )
+            else
+              @device.enableUpdates(code).then( (response) =>
+                Promise.resolve("enable updates for #{@device.id} with #{code}" )
+              )
+          else
+              action = if suspend then "suspend" else "resume"
+              @device.suspend(suspend.toString()).then( =>
+                Promise.resolve("#{action} #{@device.id}")
+              )
       )
 
-    executeAction: (simulate) => @_doExecuteAction(simulate, @state)
-    hasRestoreAction: -> yes
-    executeRestoreAction: (simulate) => @_doExecuteAction(simulate, (not @state))
+    executeAction: (simulate) => @_doExecuteAction(simulate, @suspend, @code)
+    hasRestoreAction: -> no
+    # executeRestoreAction: (simulate) => @_doExecuteAction(simulate, (not @suspend), @code)
+
 
   ##################################################################
   class SetLocationActionProvider extends env.actions.ActionProvider
@@ -142,16 +154,16 @@ module.exports = (env) ->
     _doExecuteAction: (simulate, tag) =>
       return (
         if simulate
-          Promise.resolve __("would set location of [%s] to [%]", @device.name, tag)
+          Promise.resolve __("would set location of %s to %", @device.id, tag)
         else
-          @device.updateTag(tag).then( (response) =>
-            __("set location of [%s] to [%s]", @device.name) )
+          @device.updateTag(tag).then(  =>
+            __("set location of %s to %s", @device.id, tag)
+          )
       )
 
     executeAction: (simulate) => @_doExecuteAction(simulate, @tag)
-    hasRestoreAction: -> yes
-    executeRestoreAction: (simulate) => @_doExecuteAction(simulate, (not @tag))
-
+    hasRestoreAction: -> no
+    #executeRestoreAction: (simulate) => @_doExecuteAction(simulate, (not @tag))
 
 
   return exports = {
