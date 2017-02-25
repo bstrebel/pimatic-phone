@@ -6,7 +6,7 @@ module.exports = (env) =>
 
   geolib = require 'geolib'
   actions = require('./actions.coffee')(env)
-  predicates = require('./predicates.coffee')(env)
+  # predicates = require('./predicates.coffee')(env)
 
   ############################################
   class PhonePlugin extends env.plugins.Plugin
