@@ -379,6 +379,7 @@ module.exports = (env) =>
       # this == switch device !!!
       @phone.iFrame.enabled = state
       @phone.config.iFrame.enabled
+      @phone.iframeUpdate() if state
       @phone.debug("@iFrame[enabled] set to #{@phone.iFrame.enabled}")
 
     _init: () =>
@@ -721,7 +722,7 @@ module.exports = (env) =>
       @iCloudPass = @config.iCloudPass
       @iCloudDevice = @config.iCloudDevice
       @iCloudInterval = @config.iCloudInterval
-      @iCloudVerify = @config.iCloudVerify
+      @iCloudVerify = @_checkVerificationCode(@config.iCloudVerify)
       @iCloudVerifyVariable = @config.iCloudVerifyVariable
       @iCloud2FA = @config.iCloud2FA
       @iCloudTimezone = @config.iCloudTimezone
@@ -799,6 +800,11 @@ module.exports = (env) =>
       @phone.emit 'suspended', @phone.iCloudSuspended
       @phone.debug("iCloudSuspended set to #{@phone.iCloudSuspended}")
 
+    _checkVerificationCode: (code) ->
+      if !!code and code.match(/\d{6}/)
+        return code
+      return '000000'
+
     _init: () =>
       @debug("PhoneDeviceIOS initialization")
       @iCloudSwitch = @deviceManager.getDeviceById(@config.iCloudSwitch)
@@ -849,9 +855,9 @@ module.exports = (env) =>
     enableUpdates: (code) =>
       if code.startsWith('$')
         code = @framework.variableManager.getVariableValue(code.substr(1))
-      @iCloudVerify = code
-      @iCloudClient.verify = code
-      env.logger.info("Using verification code [#{code}]")
+      @iCloudVerify = @_checkVerificationCode(code)
+      @iCloudClient.verify = @iCloudVerify
+      env.logger.info("Using verification code [#{@iCloudVerify}]")
       if not @iCloudClient.hsaChallengeRequired
         env.logger.warn("Use suspend?flag=true call for 2FA disabled accounts!")
       if @iCloudClient.authenticated

@@ -45,8 +45,10 @@ generate an API key.
     or [pimatic-cron](https://pimatic.org/plugins/pimatic-cron/) to trigger the suspend by executing (inspired by a request
     at the [pimatic forum](https://forum.pimatic.org/topic/2719/pimatic-phone-icloud-error/37)). This feature could not be used if you have
     two factor authentication activated. See 2FA remarks (see below).
-    As of Rev. 0.8.0 you can easily define a DummySwitch to enable/disable
-    iCloud updates through the mobile frontend
+    As of Rev. 0.8.0 you can define a DummySwitch to enable/disable
+    iCloud updates through the mobile frontend and since Rev. 0.8.5 you can use
+    the new actions "suspend <phone device>" and "resume <phone device>" to
+    control updates through the iCloud interface.
 
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/switch.png" width="480">
 
@@ -77,8 +79,15 @@ generate an API key.
     Due to limitations of the iCloud API logout and login calls have to be
     performed and Apple notification mails are triggered by the enableUpdates
     call. You have to provide a valid verification code or '000000' as in
-    https://.../enableUpdates?code=000000
+    https://.../enableUpdates?code=000000.
 
+    As of Rev. 0.8.5 you can use the new actions "suspend" and "resume"
+    to control the iCloud updates. The resume action takes an additional
+    argument "with <verification code>" if 2FA is enabled. Combined with
+    rules, a buttons device und a variable input device you can realize
+    a comfortable frontend to control suspend/resume with verification codes.
+
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/2FA.png" width="480">
 
 As of Rev. 0.4.6 an additional API call _updatePhone_ provides a simple to use
 interface for **Android** devices running the Tasker APP. Download and import the
@@ -596,6 +605,14 @@ Roadmap
 
 Changelog
 ---------
+
+v0.8.5
+
+- iOS device config changes
+    iCloudVerifyVariable to use with  VariableInputDevice
+    iCloud2FA used during startup before a iCloud connection is availabel
+
+- provide first pimatic actions "set location" and "suspend/resume"
 
 v0.8.4
 
