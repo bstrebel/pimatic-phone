@@ -597,6 +597,10 @@ Roadmap
 Changelog
 ---------
 
+v0.8.4
+
+- more diagnostic output if device specific debug is enabled
+
 v0.8.3
 
 - suspend attribute refactoring
