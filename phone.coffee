@@ -6,7 +6,6 @@ module.exports = (env) =>
 
   geolib = require 'geolib'
   actions = require('./actions.coffee')(env)
-  # predicates = require('./predicates.coffee')(env)
 
   ############################################
   class PhonePlugin extends env.plugins.Plugin
@@ -35,7 +34,6 @@ module.exports = (env) =>
 
       @framework.ruleManager.addActionProvider(new actions.SetSuspendActionProvider(@framework))
       @framework.ruleManager.addActionProvider(new actions.SetLocationActionProvider(@framework))
-      # @framework.ruleManager.addPredicateProvider(new predicates.TagPredicateProvider(@framework))
 
       @framework.on 'after init', =>
         @_afterInit = true
