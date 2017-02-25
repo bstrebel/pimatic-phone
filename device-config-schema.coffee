@@ -17,16 +17,16 @@ module.exports = {
         description: "Radius (m) for GPS mapping"
         type: "number"
         default: 250
+      key:
+        description: "Optional Google API key to be used in the iFrame URL"
+        type: "string"
+        default: ""
       iFrame:
         description: "iFrame configuration"
         type: "object"
         properties:
           id:
             description: "iFrame device id"
-            type: "string"
-            default: ""
-          key:
-            description: "Optional API key to be used in the iFrame URL"
             type: "string"
             default: ""
           url:
@@ -106,16 +106,16 @@ module.exports = {
         description: "Log new position only if significantly moved"
         type: "number"
         default: 250
+      key:
+        description: "Optional Google API key to be used in the iFrame URL"
+        type: "string"
+        default: ""
       iFrame:
         description: "iFrame configuration"
         type: "object"
         properties:
           id:
             description: "iFrame device id"
-            type: "string"
-            default: ""
-          key:
-            description: "Optional API key to be used in the iFrame URL"
             type: "string"
             default: ""
           url:

@@ -21,6 +21,7 @@
   },
   "configSchema": "phone-config-schema.coffee",
   "dependencies": {
+    "@google/maps": "^0.3.1",
     "bluebird": "^3.4.7",
     "coffee-script": "^1.12.3",
     "geolib": "^2.0.22",

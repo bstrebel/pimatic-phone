@@ -22,6 +22,9 @@ module.exports = (env) =>
         configDef: deviceConfigDef.PhoneDevice,
         createCallback: (config, lastState) =>
           config.iFrame = {} unless config.iFrame?
+          if !!config.iFrame.key
+            config.key = config.iFrame.key
+          config.iFrame.key = null
           return new PhoneDevice(config, lastState, @)
       })
 
@@ -29,6 +32,9 @@ module.exports = (env) =>
         configDef: deviceConfigDef.PhoneDeviceIOS,
         createCallback: (config, lastState) =>
           config.iFrame = {} unless config.iFrame?
+          if !!config.iFrame.key
+            config.key = config.iFrame.key
+          config.iFrame.key = null
           return new PhoneDeviceIOS(config, lastState, @)
       })
 
@@ -402,7 +408,6 @@ module.exports = (env) =>
             if !!@config.iFrame.url
               @iFrame = {
                 device: iFrame
-                key: @config.iFrame.key
                 url: @config.iFrame.url
                 enabled: @config.iFrame.enabled
                 switch: actuator
@@ -650,7 +655,7 @@ module.exports = (env) =>
       return unless @iFrame? and @_latitude? and @_longitude?
       return unless @iFrame.enabled
       url = @iFrame.url
-        .replace("{key}", @iFrame.key)
+        .replace("{key}", @config.key)
         .replace("{latitude}", @_latitude.toString())
         .replace("{longitude}", @_longitude.toString())
       @debug("Reload iFrame with #{url}")
