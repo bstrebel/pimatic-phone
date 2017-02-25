@@ -407,7 +407,7 @@ module.exports = (env) =>
 
     debug: (message) =>
       if @debug
-        env.logger.debug("Device #{@config.id}: " + message)
+        env.logger.debug("Debug #{@config.id}: " + message)
 
     destroy: () ->
       if @iFrame?.switch?
@@ -426,6 +426,7 @@ module.exports = (env) =>
       throw new Error("Not implemented: Ignoring update record [#{record}]")
 
     enter: (tag) ->
+      @debug("enter: tag=#{tag}")
       @_setTimeStamp()
       @_source = "GEO"
       @_tag = tag
@@ -434,6 +435,7 @@ module.exports = (env) =>
       return @_emitUpdates("Update location for \"#{@name}\": geo: [#{@_tag}]")
 
     exit: (tag) ->
+      @debug("exit: tag=#{tag}")
       @_setTimeStamp()
       @_source = "GEO"
       @_tag = "unknown"
@@ -442,6 +444,7 @@ module.exports = (env) =>
       return @_emitUpdates("Update location for \"#{@name}\": geo: [#{@_tag}]")
 
     updateTag: (tag) ->
+      @debug("updateTag: tag=#{tag}")
       @_setTimeStamp()
       @_source = "TAG"
       @_tag = tag
@@ -450,44 +453,56 @@ module.exports = (env) =>
       return @_emitUpdates("Update location for \"#{@name}\": tag: [#{@_tag}]")
 
     updatePhone: (serial, ssid, cellid, locn, loc) ->
+      @debug("updatePhone: serial=#{serial} ssid=#{ssid} cellid=#{cellid} locn=#{locn} loc=#{loc}")
       tag = null
       if ! ssid.startsWith('%')
+        @debug("updatePhone: checking %SSID [#{ssid}]")
         tag = plugin.tagFromSSID(ssid)
         if tag != "unknown"
           return @updateSSID(ssid)
       # not connected to WLAN, use GPS or NET location
+      @debug("updatePhone: continue with unknown ssid")
       gps = null
       type = null
       if ! loc.startsWith('%')
+        @debug("updatePhone: using GPS from %LOC [#{loc}]")
         gps = @_gpsFromTaskerLocation(loc)
         type = 'GPS'
       else if ! locn.startsWith('%')
+        @debug("updatePhone: using GPS from %LOCN [#{locn}]")
         gps = @_gpsFromTaskerLocation(locn)
         type = 'NET'
       else if ! cellid.startsWith('%')
+        @debug("updatePhone: using %CELLID [#{cellid}]")
         return @updateCID(cellid)
       if gps?
         return @updateGPS(gps.latitude, gps.longitude, gps.accuracy, type)
 
     updateCID: (cell) ->
+      @debug("updateCID: cell=#{cell}")
       @_setTimeStamp()
       @_source = "CID"
       @_cell = cell
       @_type = "CID"
       @_tag = plugin.tagFromCID(cell)
+      @debug("updateCID: #{cell} -> #{@_tag}")
       @_updateLocation(@_tag)
-      return @_emitUpdates("Update location for \"#{@name}V: #{@_cell}")
+      return @_emitUpdates("Update location for \"#{@name}\": #{@_cell}")
 
     updateSSID: (ssid) ->
+      @debug("updateSSID: ssid=#{ssid}")
       @_setTimeStamp()
       @_source = "SSID"
       @_ssid = ssid
       @_type = ssid
       @_tag = plugin.tagFromSSID(ssid)
+      @debug("updateSSID: #{ssid} -> #{@_tag}")
       @_updateLocation(@_tag)
       return @_emitUpdates("Update location for \"#{@name}\": SSID:#{@_ssid}")
 
     updateGPS: (latitude, longitude, accuracy, type) ->
+      parms = "latitude=#{latitude} longitude=#{longitude} accuracy=#{accuracy} type=#{type}"
+      @debug("updateGPS: #{parms}")
       @_setTimeStamp()
       @_source = "GPS"
       @_latitude = latitude
@@ -495,12 +510,14 @@ module.exports = (env) =>
       @_accuracy = accuracy
       @_type = type
       @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude}, @accuracy)
+      @debug("updateGPS: #{latitude},#{longitude} -> #{@_tag}")
       msg = "Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude},#{@_accuracy} \
         Tag: [#{@_tag}]"
       return @_emitUpdates(msg)
 
     updateLocation: (long, lat, updateAddress) ->
       # legacy action for pimatic-location android client
+      @debug("updateLocation: long=#{long} lat=#{lat} updateAddress=#{updateAddress}")
       @_setTimeStamp()
       @_source = "LOC"
       @_latitude = lat
@@ -508,6 +525,7 @@ module.exports = (env) =>
       @_accuracy = 0
       @_type = "GPS"
       @_tag = plugin.tagFromGPS({"latitude": lat, "longitude": long})
+      @debug("updateLocation: #{lat},#{long} -> #{@_tag}")
       env.logger.debug("Legacy updateLocation: updateAddress [#{updateAddress}] ignored.")
       return @_emitUpdates("Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude}")
 
@@ -586,7 +604,7 @@ module.exports = (env) =>
       if changed or force
         @debug("Updating device attributes [force=#{force}]")
         for key, value of @.attributes
-          # @debug("#{key}=#{@['_'+ key]}") if key isnt '__proto__' and @['_'+ key]?
+          @debug("* #{key}=#{@['_'+ key]}") if key isnt '__proto__' and @['_'+ key]?
           @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
         @iframeUpdate()
 
