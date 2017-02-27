@@ -21,6 +21,13 @@ from [icloud-promise](https://www.npmjs.com/package/icloud-promise) for **iOS** 
 The signature of the _updateLocation_ API call provides compatibility
 with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
 
+From version Rev. 0.9.0 reverse Geocoding for the also supported. The new
+address attribute could be maintained manually through the plugin location
+map configuration or by reverse Geocoding by the Google Maps Geocoding API.
+
+**Make sure, your Google API key ist at least activated for the Google Maps Embed API
+and the Google Maps Geocoding API.**
+
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/frontend.png" width="1020">
 
 With revision Rev. 0.8.0 an iframeDevice from pimatic-iframe can be utilized
@@ -600,8 +607,9 @@ Roadmap
 * ~~Generate HTML links to display device location in Open Street Map~~
 * ~~Display current location in maps iframe (Google/OSM)~~
 * ~~Add distance attribute (distance between geo locations)~~
-* Use Google Maps and/or OSM for route calculations
-* Add route attribute (routing distance road)
+* Provide device predicates: location, distance, eta, ...
+* Use Google Maps for route calculations
+
 
 Changelog
 ---------
@@ -612,7 +620,7 @@ v.0.9.0
   make sure, your api key is activated for **Embed** and **Geocoding** API
 - addtional attribute "address" (from config or reverseGeocoding)
 - plugin an device configuratin changes (ignore warnings thrown on first
-    startup and device initialization
+    startup with new plugin configuration
 
 
 v0.8.5

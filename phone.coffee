@@ -459,7 +459,7 @@ module.exports = (env) =>
 
     debug: (message) =>
       if @debug
-        env.logger.debug("Debug #{@config.id}: " + message)
+        env.logger.debug("Device #{@config.id}: " + message)
 
     destroy: () ->
       if @iFrame?.switch?
