@@ -684,7 +684,7 @@ module.exports = (env) =>
       return unless @googleMapsClient?
       mode = if input.latlng? then 'reverseGeocode' else 'geocode'
       @googleMapsClient[mode](input).asPromise()
-      .then( (response) =>
+      .then( (response) ->
         if response?.json?.status?
           if response.json.status == 'OK'
             if response.json.results?
@@ -723,7 +723,7 @@ module.exports = (env) =>
           @debug("Lookup address for [#{@_tag}]")
       else
         @debug("Lookup address for unknown location with [#{lookup}]")
-      if @googleMapsClient?
+      if @googleMapsClient? and @config.googleMaps?.reverseGeocoding
         @_geocode({latlng: lookup})
         .then( (results) =>
           @_address = results[0].formatted_address

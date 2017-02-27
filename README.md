@@ -8,7 +8,7 @@
 pimatic-phone
 =============
 
-<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/frontend.png" width="1020">
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/iframe.png" width="1020">
 
 A generic pimatic plugin for mobile devices to provide location based
 devices. Continuous GPS tracking and reverse geocoding are expensive in
@@ -21,7 +21,7 @@ from [icloud-promise](https://www.npmjs.com/package/icloud-promise) for **iOS** 
 The signature of the _updateLocation_ API call provides compatibility
 with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
 
-<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/iframe.png" width="1020">
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/frontend.png" width="1020">
 
 With revision Rev. 0.8.0 an iframeDevice from pimatic-iframe can be utilized
 to show the current location on a map. Default settings use the Google Maps Embed API.
@@ -605,6 +605,15 @@ Roadmap
 
 Changelog
 ---------
+
+v.0.9.0
+
+- use (reverse) geocoding from Googlke Maps API
+  make sure, your api key is activated for **Embed** and **Geocoding** API
+- addtional attribute "address" (from config or reverseGeocoding)
+- plugin an device configuratin changes (ignore warnings thrown on first
+    startup and device initialization
+
 
 v0.8.5
 
