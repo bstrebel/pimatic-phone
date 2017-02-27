@@ -112,8 +112,6 @@ module.exports = (env) =>
       #  tags.push location.tag
       return _.map @config.locations, 'tag'
 
-    updateAddress: (tag, address) =>
-      return
 
   plugin = new PhonePlugin
 
@@ -424,7 +422,7 @@ module.exports = (env) =>
     _init: () =>
       @debug("PhoneDevice Initialization")
       if !! @config.googleMaps.key
-        @googleMapsClient = googlemaps.createClient(key: @config.googleMaps.key)
+        @googleMapsClient = googlemaps.createClient({key: @config.googleMaps.key, Promise: Promise})
         @debug("Using googleMapsClient with key=#{@config.googleMaps.key}")
         @_updateAddress()
       iFramePlugin = @pluginManager.getPlugin('iframe')
@@ -682,33 +680,35 @@ module.exports = (env) =>
         #@_timeStamp = new Date()
         #@_timeSpec = @_timeStamp.format(@timeformat)
 
-    _geocode: (input, callback) =>
+    _geocode: (input) =>
       return unless @googleMapsClient?
       mode = if input.latlng? then 'reverseGeocode' else 'geocode'
-      @googleMapsClient[mode] input, (err, response) =>
-        if !err
-          if response?.json?.status?
-            if response.json.status == 'OK'
-              if response.json.results?
-                if response.json.results.length > 0
-                  if mode == 'reverseGeocode'
-                    result = response.json.results[0].formatted_address
-                  else
-                    location = response.json.results[0].geometry.location
-                    result = "#{location.lat},#{location.lng}"
-                  env.logger.info("Google Maps #{mode} API returned [#{result}]")
-                  return callback(response.json.results)
-              env.logger.warn("Google Maps #{mode} API returned no results for #{input}")
-              return
-            else
-              status = "[#{response.json.status}]: #{response.json.error_message}"
-              env.logger.error("Google Maps #{mode} API returned status #{status}")
+      @googleMapsClient[mode](input).asPromise()
+      .then( (response) =>
+        if response?.json?.status?
+          if response.json.status == 'OK'
+            if response.json.results?
+              if response.json.results.length > 0
+                if mode == 'reverseGeocode'
+                  result = response.json.results[0].formatted_address
+                else
+                  location = response.json.results[0].geometry.location
+                  result = "#{location.lat},#{location.lng}"
+                env.logger.info("Google Maps #{mode} API returned [#{result}]")
+                return Promise.resolve(response.json.results)
+            throw new Error("Google Maps #{mode} API returned no results for #{input}")
           else
-            env.logger.error("Google Maps #{mode} API returned unknown response #{response}")
+            status = "[#{response.json.status}]: #{response.json.error_message}"
+            throw new Error("Google Maps #{mode} API returned status #{status}")
         else
-          env.logger.error("Google Maps #{mode} API returned error: #{err}")
-        env.logger.error("Google Maps API disabled. Check log entries!")
+          throw new Error("Google Maps #{mode} API returned unknown response #{response}")
+      )
+      .catch( (err) =>
+        env.logger.error("#{err}")
+        env.logger.error("Google Maps API disabled.")
         @googleMapsClient = null
+        return Promise.reject(err)
+      )
 
     _updateAddress: () ->
       lookup = "#{@_latitude},#{@_longitude}"
@@ -724,12 +724,15 @@ module.exports = (env) =>
       else
         @debug("Lookup address for unknown location with [#{lookup}]")
       if @googleMapsClient?
-        @_geocode {latlng: lookup}, (results) =>
+        @_geocode({latlng: lookup})
+        .then( (results) =>
           @_address = results[0].formatted_address
           @emit 'address', @_address
           # @debug("Google Maps API returned [#{@_address}]")
           if location?
             location.address = @_address
+        )
+        .catch((err) -> return )
 
     _updateLocation: (tag) =>
       # set gps location from tag
