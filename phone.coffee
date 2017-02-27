@@ -5,13 +5,37 @@ module.exports = (env) =>
   t = env.require('decl-api').types
 
   geolib = require 'geolib'
+  googlemaps = require '@google/maps'
   actions = require('./actions.coffee')(env)
 
   ############################################
   class PhonePlugin extends env.plugins.Plugin
   ############################################
+  
+    preConfig: (config) ->
+      config.iFrame = {} unless config.iFrame?
+      config.googleMaps = {} unless config.googleMaps?
+      if config.iFrame.key?
+        config["googleMaps"]["key"] = config.iFrame.key
+        delete(config.iFrame["key"])
+      return config
+      
+    postConfig: (device) ->
+      xAttr = device.config.xAttributeOptions
+      for attr in ['timeSpec', 'tag', 'source', 'type', 'latitude', 'longitude', 'address']
+        if not _.find(xAttr, name: attr)
+          xattr = {name: attr}
+          for entry in ['displaySparkline', 'hidden']
+            if device.attributes[attr][entry]? and device.attributes[attr][entry]
+              xattr[entry] = device.attributes[attr][entry]
+          xAttr.push(xattr)
+      return device
 
     init: (app, @framework, @config) =>
+
+      for location in @config.locations
+        location["address"] = "" unless location.address?
+        location["data"] = {} unless location.data?
 
       @_afterInit = false
 
@@ -21,21 +45,15 @@ module.exports = (env) =>
       @framework.deviceManager.registerDeviceClass('PhoneDevice', {
         configDef: deviceConfigDef.PhoneDevice,
         createCallback: (config, lastState) =>
-          config.iFrame = {} unless config.iFrame?
-          if !!config.iFrame.key
-            config.key = config.iFrame.key
-          config.iFrame.key = null
-          return new PhoneDevice(config, lastState, @)
+          config = @preConfig(config)
+          return @postConfig new PhoneDevice(config, lastState, @)
       })
 
       @framework.deviceManager.registerDeviceClass('PhoneDeviceIOS', {
         configDef: deviceConfigDef.PhoneDeviceIOS,
         createCallback: (config, lastState) =>
-          config.iFrame = {} unless config.iFrame?
-          if !!config.iFrame.key
-            config.key = config.iFrame.key
-          config.iFrame.key = null
-          return new PhoneDeviceIOS(config, lastState, @)
+          config = @preConfig(config)
+          return @postConfig new PhoneDeviceIOS(config, lastState, @)
       })
 
       @framework.ruleManager.addActionProvider(new actions.SetSuspendActionProvider(@framework))
@@ -94,6 +112,9 @@ module.exports = (env) =>
       #  tags.push location.tag
       return _.map @config.locations, 'tag'
 
+    updateAddress: (tag, address) =>
+      return
+
   plugin = new PhonePlugin
 
 
@@ -119,15 +140,6 @@ module.exports = (env) =>
         acronym: 'UTC'
         displaySparkline: false
         hidden: true
-        discrete: true
-      source:
-        label: "Location source"
-        description: "Source of location information: LOC, GPS, NET, TAG, SSID, ..."
-        type: t.string
-        unit: ""
-        acronym: 'SRC'
-        displaySparkline: false
-        hidden: false
         discrete: true
       tag:
         description: "Current location of the device"
@@ -176,6 +188,15 @@ module.exports = (env) =>
         acronym: 'PREV'
         displaySparkline: false
         hidden: true
+        discrete: true
+      source:
+        label: "Location source"
+        description: "Source of location information: LOC, GPS, NET, TAG, SSID, ..."
+        type: t.string
+        unit: ""
+        acronym: 'SRC'
+        displaySparkline: false
+        hidden: false
         discrete: true
       type:
         label: "Type"
@@ -233,6 +254,14 @@ module.exports = (env) =>
         acronym: 'GPS'
         displaySparkline: false
         hidden: true
+      address:
+        label: "Address"
+        description: "Address of device"
+        type: t.string
+        unit: ""
+        acronym: 'ADDR'
+        displaySparkline: false
+        hidden: false
 
     actions:
       update:
@@ -319,6 +348,7 @@ module.exports = (env) =>
     getCell: () -> Promise.resolve(@_cell)
     getSsid: () -> Promise.resolve(@_ssid)
     getGps: () -> Promise.resolve(@_gps)
+    getAddress: () -> Promise.resolve(@_address)
 
     constructor: (@config, lastState, plugin) ->
       # phone device configuration
@@ -334,6 +364,7 @@ module.exports = (env) =>
       @framework = plugin.framework
 
       @iFrame = null
+      @googleMapsClient = null
 
       # use device specific debug flag
       # to allow changes during runtime
@@ -349,6 +380,7 @@ module.exports = (env) =>
           type: t.number
           unit: "m"
           acronym: 'DTL'
+          displaySparkline: false
           hidden: location.tag != plugin.config.homelocation
         })
         @['_'+attributeName] = null
@@ -364,6 +396,7 @@ module.exports = (env) =>
       @_source = lastState?.source?.value or "?"
       @_latitude = lastState?.latitude?.value or null
       @_longitude = lastState?.longitude?.value or null
+      @_address = lastState?.address?.value or null
       @_timeStamp = lastState?.timeStamp?.value or new Date().getTime()
       @_timeSpec = lastState?.timeSpec?.value or new Date(@_timeStamp).format(@timeformat)
 
@@ -390,6 +423,10 @@ module.exports = (env) =>
 
     _init: () =>
       @debug("PhoneDevice Initialization")
+      if !! @config.googleMaps.key
+        @googleMapsClient = googlemaps.createClient(key: @config.googleMaps.key)
+        @debug("Using googleMapsClient with key=#{@config.googleMaps.key}")
+        @_updateAddress()
       iFramePlugin = @pluginManager.getPlugin('iframe')
       if iFramePlugin?
         @debug("Found pimatic-iframe plugin")
@@ -419,7 +456,6 @@ module.exports = (env) =>
             #  env.logger.error("Device #{@config.iFrame?.id} is not an iFrame!")
           else
             env.logger.error("iFrame device #{@config.iFrame.id} not found!")
-
 
     debug: (message) =>
       if @debug
@@ -597,7 +633,7 @@ module.exports = (env) =>
 
     _emitUpdates: (logMsg, force=false) ->
       env.logger.debug(logMsg)
-      @_processLocation(force)
+      @_processLocation(force)  # process GPS coordinates
 
       # update xLink URL
       if @_latitude? and @_longitude?
@@ -618,6 +654,7 @@ module.exports = (env) =>
         changed = false
 
       if changed or force
+        @_updateAddress() # reverse geocoding
         @debug("Updating device attributes [force=#{force}]")
         for key, value of @.attributes
           @debug("* #{key}=#{@['_'+ key]}") if key isnt '__proto__' and @['_'+ key]?
@@ -645,19 +682,72 @@ module.exports = (env) =>
         #@_timeStamp = new Date()
         #@_timeSpec = @_timeStamp.format(@timeformat)
 
-    _updateLocation: (tag) ->
+    _geocode: (input, callback) =>
+      return unless @googleMapsClient?
+      mode = if input.latlng? then 'reverseGeocode' else 'geocode'
+      @googleMapsClient[mode] input, (err, response) =>
+        if !err
+          if response?.json?.status?
+            if response.json.status == 'OK'
+              if response.json.results?
+                if response.json.results.length > 0
+                  if mode == 'reverseGeocode'
+                    result = response.json.results[0].formatted_address
+                  else
+                    location = response.json.results[0].geometry.location
+                    result = "#{location.lat},#{location.lng}"
+                  env.logger.info("Google Maps #{mode} API returned [#{result}]")
+                  return callback(response.json.results)
+              env.logger.warn("Google Maps #{mode} API returned no results for #{input}")
+              return
+            else
+              status = "[#{response.json.status}]: #{response.json.error_message}"
+              env.logger.error("Google Maps #{mode} API returned status #{status}")
+          else
+            env.logger.error("Google Maps #{mode} API returned unknown response #{response}")
+        else
+          env.logger.error("Google Maps #{mode} API returned error: #{err}")
+        env.logger.error("Google Maps API disabled. Check log entries!")
+        @googleMapsClient = null
+
+    _updateAddress: () ->
+      lookup = "#{@_latitude},#{@_longitude}"
+      @_address = "unknown"
+      location = plugin.locationFromTag(@_tag)
+      if location?
+        if !! location.address
+          @debug("Using cached address [#{location.address}] for [#{@_tag}]")
+          @_address = location.address
+          return
+        else
+          @debug("Lookup address for [#{@_tag}]")
+      else
+        @debug("Lookup address for unknown location with [#{lookup}]")
+      if @googleMapsClient?
+        @_geocode {latlng: lookup}, (results) =>
+          @_address = results[0].formatted_address
+          @emit 'address', @_address
+          # @debug("Google Maps API returned [#{@_address}]")
+          if location?
+            location.address = @_address
+
+    _updateLocation: (tag) =>
       # set gps location from tag
       location = plugin.locationFromTag(@_tag)
       @_latitude = location?.gps?.latitude or null
       @_longitude = location?.gps?.longitude or null
 
-    iframeUpdate: () ->
+    iframeUpdate: () =>
       return unless @iFrame? and @_latitude? and @_longitude?
       return unless @iFrame.enabled
+      address = @_address
+      if not address? or address == "" or address == "unknown"
+        address = "#{@_latitude.toString()} #{@_longitude.toString()}"
       url = @iFrame.url
-        .replace("{key}", @config.key)
+        .replace("{key}", @config.googleMaps.key)
         .replace("{latitude}", @_latitude.toString())
         .replace("{longitude}", @_longitude.toString())
+        .replace("{address}", encodeURIComponent(address))
       @debug("Reload iFrame with #{url}")
       @iFrame.device.loadIFrameWith(url)
 

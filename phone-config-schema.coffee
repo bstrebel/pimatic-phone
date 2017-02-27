@@ -28,6 +28,12 @@ module.exports = {
           tag:
             description: "Location tag"
             type: "string"
+          address:
+            description: "Location address"
+            type: "string"
+          data:
+            description: "Additional location data"
+            type: "object"
           ssids:
             description: "WiFi SSIDs"
             type: "array"

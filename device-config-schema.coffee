@@ -17,13 +17,27 @@ module.exports = {
         description: "Radius (m) for GPS mapping"
         type: "number"
         default: 250
-      key:
-        description: "Optional Google API key to be used in the iFrame URL"
-        type: "string"
-        default: ""
+      googleMaps:
+        description: "Optional Google Maps API options"
+        type: "object"
+        default: {}
+        properties:
+          key:
+            description: "Optional Google API key to be used in the iFrame URL"
+            type: "string"
+            default: ""
+          geocoding:
+            description: "Lookup location for address"
+            type: "boolean"
+            default: true
+          reverseGeocoding:
+            description: "Lookup address for location"
+            type: "boolean"
+            default: true
       iFrame:
         description: "iFrame configuration"
         type: "object"
+        default: {}
         properties:
           id:
             description: "iFrame device id"
@@ -106,13 +120,27 @@ module.exports = {
         description: "Log new position only if significantly moved"
         type: "number"
         default: 250
-      key:
-        description: "Optional Google API key to be used in the iFrame URL"
-        type: "string"
-        default: ""
+      googleMaps:
+        description: "Optional Google Maps API options"
+        type: "object"
+        default: {}
+        properties:
+          key:
+            description: "Optional Google API key to be used in the iFrame URL"
+            type: "string"
+            default: ""
+          geocoding:
+            description: "Lookup location for address"
+            type: "boolean"
+            default: true
+          reverseGeocoding:
+            description: "Lookup address for location"
+            type: "boolean"
+            default: true
       iFrame:
         description: "iFrame configuration"
         type: "object"
+        default: {}
         properties:
           id:
             description: "iFrame device id"
