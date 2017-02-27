@@ -21,6 +21,8 @@ module.exports = (env) =>
       return config
       
     postConfig: (device) ->
+      if not device.config.xAttributeOptions?
+        device.config.xAttributeOptions = []
       xAttr = device.config.xAttributeOptions
       for attr in ['timeSpec', 'tag', 'source', 'type', 'latitude', 'longitude', 'address']
         if not _.find(xAttr, name: attr)
