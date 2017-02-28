@@ -171,8 +171,76 @@ module.exports = (env) ->
     hasRestoreAction: -> no
     #executeRestoreAction: (simulate) => @_doExecuteAction(simulate, (not @tag))
 
+  ##################################################################
+  class SetAddressActionProvider extends env.actions.ActionProvider
+  ##################################################################
+
+    constructor: (@framework) ->
+
+    parseAction: (input, context) ->
+      retVar = null
+
+      phones = _(@framework.deviceManager.devices).values().filter(
+        (device) -> device.hasAction("updateAddress")
+      ).value()
+
+      device = null
+      address = null
+      match = null
+
+      m = M(input, context).match(['set address of '])
+      m.matchDevice(phones, (m, _device) ->
+        m.match(' to ', (m) ->
+          m.matchStringWithVars( (m, _address) ->
+            # Already had a match with another device?
+            if device? and device.id isnt _device.id
+              context?.addError(""""#{input.trim()}" is ambiguous.""")
+              return
+            device = _device
+            address = _address
+            match = m.getFullMatch()
+          )
+        )
+      )
+
+      if match?
+        assert device?
+        assert typeof match is "string"
+
+        return {
+          token: match
+          nextInput: input.substring(match.length)
+          actionHandler: new AddressActionHandler(@framework, device, address)
+        }
+      else
+        return null
+
+  class AddressActionHandler extends env.actions.ActionHandler
+
+    constructor: (@framework, @device, @address) ->
+
+    setup: ->
+      @dependOnDevice(@device)
+      super()
+
+    executeAction: (simulate) =>
+      @framework.variableManager.evaluateStringExpression(@address)
+      .then( (address) =>
+        if simulate
+          return __("would set address of \"%s\" to \"%s\"", @device.id, address)
+        else
+          @device.updateAddress(address).then(  =>
+            __("set address of \"%s\" to \"%s\"", @device.id, address)
+          ).catch ((err) => Promise.reject(err))
+      )
+      .catch( (err) =>
+        Promise.reject(err)
+      )
+
+    hasRestoreAction: -> no
 
   return exports = {
     SetSuspendActionProvider
     SetLocationActionProvider
+    SetAddressActionProvider
   }

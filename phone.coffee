@@ -60,6 +60,7 @@ module.exports = (env) =>
 
       @framework.ruleManager.addActionProvider(new actions.SetSuspendActionProvider(@framework))
       @framework.ruleManager.addActionProvider(new actions.SetLocationActionProvider(@framework))
+      @framework.ruleManager.addActionProvider(new actions.SetAddressActionProvider(@framework))
 
       @framework.on 'after init', =>
         @_afterInit = true
@@ -410,7 +411,7 @@ module.exports = (env) =>
 
       # initialization has to be done after super() !!!
       @_setTimeStamp(false) # initialize @_last_* but don't clear attributes
-      @_emitUpdates("Initial location update for device #{@id}", true)
+      @_emitUpdates("constructor", true)
 
       @framework.on 'after init', =>
         # run once after system init
@@ -483,41 +484,43 @@ module.exports = (env) =>
       throw new Error("Not implemented: Ignoring update record [#{record}]")
 
     enter: (tag) ->
-      @debug("enter: tag=#{tag}")
+      @debug("enter tag=#{tag}")
       @_setTimeStamp()
       @_source = "GEO"
       @_tag = tag
       @_type = "API"
       @_updateLocation(@_tag)
-      return @_emitUpdates("Update location for \"#{@name}\": geo: [#{@_tag}]")
+      return @_emitUpdates("enter")
 
     exit: (tag) ->
-      @debug("exit: tag=#{tag}")
+      @debug("exit tag=#{tag}")
       @_setTimeStamp()
       @_source = "GEO"
       @_tag = "unknown"
       @_type = "API"
       @_updateLocation(@_tag)
-      return @_emitUpdates("Update location for \"#{@name}\": geo: [#{@_tag}]")
+      return @_emitUpdates("exit")
 
     updateTag: (tag) ->
-      @debug("updateTag: tag=#{tag}")
+      @debug("updateTag tag=#{tag}")
       @_setTimeStamp()
       @_source = "TAG"
       @_tag = tag
       @_type = "API"
       @_updateLocation(@_tag)
-      return @_emitUpdates("Update location for \"#{@name}\": tag: [#{@_tag}]")
+      return @_emitUpdates("updateTag")
 
     updateAddress: (address) ->
-      @debug("updateAddress: address=#{address}")
+      @debug("updateAddress address=#{address}")
       @_setTimeStamp()
       @_source = "ADDR"
       @_type = "API"
-      location = @_updateLocation(@_address)
+      location = @_updateLocation(address)
       @_tag = "unknown"
       if location?
         @_tag = location.tag
+        @debug("updateAddress - found matching tag for address [#{address}]")
+        return @_emitUpdates("updateAddress")
       else
         if @googleMapsClient? and @config.googleMaps?.geocoding
           @_geocode({address: address})
@@ -525,15 +528,13 @@ module.exports = (env) =>
             @_address = results[0].formatted_address
             @_latitude = results[0].geometry?.location?.lat
             @_longitude = results[0].geometry?.location?.lng
-            @emit 'address', @_address
-            @emit 'latitude', @_latitude
-            @emit 'longitude', @_longitude
-            @iframeUpdate()
+            @_tag = plugin.tagFromGPS({latitude: @_latitude, longitude: @_longitude})
+            @debug("updateAddress - found [#{@_address}] by geocoding lookup")
+            return @_emitUpdates("updateAddress")
           )
           .catch((err) -> return )
         else
           env.logger.error("Geocoding disabled. Cannot lookup address [#{@_address}]")
-      return @_emitUpdates("Update address for \"#{@name}\": address: [#{@_address}]")
 
     updatePhone: (serial, ssid, cellid, locn, loc) ->
       @debug("updatePhone: serial=#{serial} ssid=#{ssid} cellid=#{cellid} locn=#{locn} loc=#{loc}")
@@ -570,7 +571,7 @@ module.exports = (env) =>
       @_tag = plugin.tagFromCID(cell)
       @debug("updateCID: #{cell} -> #{@_tag}")
       @_updateLocation(@_tag)
-      return @_emitUpdates("Update location for \"#{@name}\": #{@_cell}")
+      return @_emitUpdates("updateCID", "")
 
     updateSSID: (ssid) ->
       @debug("updateSSID: ssid=#{ssid}")
@@ -581,7 +582,7 @@ module.exports = (env) =>
       @_tag = plugin.tagFromSSID(ssid)
       @debug("updateSSID: #{ssid} -> #{@_tag}")
       @_updateLocation(@_tag)
-      return @_emitUpdates("Update location for \"#{@name}\": SSID:#{@_ssid}")
+      return @_emitUpdates("updateSSID")
 
     updateGPS: (latitude, longitude, accuracy, type) ->
       parms = "latitude=#{latitude} longitude=#{longitude} accuracy=#{accuracy} type=#{type}"
@@ -594,9 +595,8 @@ module.exports = (env) =>
       @_type = type
       @_tag = plugin.tagFromGPS({"latitude": latitude, "longitude": longitude}, @accuracy)
       @debug("updateGPS: #{latitude},#{longitude} -> #{@_tag}")
-      msg = "Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude},#{@_accuracy} \
-        Tag: [#{@_tag}]"
-      return @_emitUpdates(msg)
+      # msg = "GPS:#{@_latitude},#{@_longitude},#{@_accuracy} Tag: [#{@_tag}]"
+      return @_emitUpdates("updateGPS")
 
     updateLocation: (long, lat, updateAddress) ->
       # legacy action for pimatic-location android client
@@ -610,7 +610,7 @@ module.exports = (env) =>
       @_tag = plugin.tagFromGPS({"latitude": lat, "longitude": long})
       @debug("updateLocation: #{lat},#{long} -> #{@_tag}")
       env.logger.debug("Legacy updateLocation: updateAddress [#{updateAddress}] ignored.")
-      return @_emitUpdates("Update location for \"#{@name}\": GPS:#{@_latitude},#{@_longitude}")
+      return @_emitUpdates("updateLocation")
 
     _gpsFromTaskerLocation: (loc) ->
       gps = {}
@@ -662,12 +662,12 @@ module.exports = (env) =>
           @[attributeName] = distance
           @debug("Distance to #{location.tag}: #{distance}m")
 
-    _emitUpdates: (logMsg, force=false) ->
-      env.logger.debug(logMsg)
+    _emitUpdates: (caller, force=false) ->
+      env.logger.debug("Device #{@config.id}: Update requested by [#{caller}]")
       @_processLocation(force)  # process GPS coordinates
 
       # update xLink URL
-      if @_latitude? and @_longitude?
+      if !!@config.xLink and @_latitude? and @_longitude?
         @config.xLink = @config.xLinkTemplate.replace("{latitude}", @_latitude.toString())
           .replace("{longitude}", @_longitude.toString())
 
@@ -685,13 +685,15 @@ module.exports = (env) =>
         changed = false
 
       if changed or force
-        @_updateAddress() # reverse geocoding
-        @debug("Updating device attributes [force=#{force}]")
-        for key, value of @.attributes
-          @debug("* #{key}=#{@['_'+ key]}") if key isnt '__proto__' and @['_'+ key]?
-          @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
-
-      return Promise.resolve(@_locationResponse())
+        @_updateAddress()
+        .then( (address) =>
+          @debug("Updating device attributes [force=#{force}]")
+          for key, value of @.attributes
+            @debug("* #{key}=#{@['_'+ key]}") if key isnt '__proto__' and @['_'+ key]?
+            @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
+          return Promise.resolve(@_locationResponse())
+        )
+        .catch( (err) => return Promise.reject(err) )
 
     _clearUpdates: () =>
       for key, value of @.attributes
@@ -743,15 +745,18 @@ module.exports = (env) =>
       )
 
     _updateAddress: () ->
+      if @_source == "ADDR" and !!@_address
+        @debug("Keep geocoded address [#{@_address}]")
+        @iframeUpdate()
+        return Promise.resolve(@_address)
       lookup = "#{@_latitude},#{@_longitude}"
-      @_address = "unknown"
       location = plugin.locationFromTag(@_tag)
       if location?
-        if !! location.address
+        if !!location.address
           @debug("Using cached address [#{location.address}] for [#{@_tag}]")
           @_address = location.address
           @iframeUpdate()
-          return
+          return Promise.resolve(@_address)
         else
           @debug("Lookup address for [#{@_tag}]")
       else
@@ -765,12 +770,13 @@ module.exports = (env) =>
           # @debug("Google Maps API returned [#{@_address}]")
           if location?
             location.address = @_address
+          return Promise.resolve(@_address)
         )
-        .catch((err) -> return )
+        .catch((err) -> return Promise.reject(err))
 
     _updateLocation: (tag) =>
       # set gps location from tag
-      location = plugin.locationFromTag(@_tag)
+      location = plugin.locationFromTag(tag)
       @_latitude = location?.gps?.latitude or null
       @_longitude = location?.gps?.longitude or null
       return location
