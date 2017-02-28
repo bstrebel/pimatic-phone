@@ -448,7 +448,7 @@ module.exports = (env) =>
                 enabled: @config.iFrame.enabled
                 switch: actuator
               }
-              @_updateAddress()
+              @updateAddress()
             else
               env.logger.error("Missing template URL for #{@config.iFrame.id}")
             # else
@@ -653,7 +653,7 @@ module.exports = (env) =>
         changed = false
 
       if changed or force
-        @_updateAddress() # reverse geocoding
+        @updateAddress() # reverse geocoding
         @debug("Updating device attributes [force=#{force}]")
         for key, value of @.attributes
           @debug("* #{key}=#{@['_'+ key]}") if key isnt '__proto__' and @['_'+ key]?
@@ -710,7 +710,7 @@ module.exports = (env) =>
         return Promise.reject(err)
       )
 
-    _updateAddress: () ->
+    updateAddress: () ->
       lookup = "#{@_latitude},#{@_longitude}"
       @_address = "unknown"
       location = plugin.locationFromTag(@_tag)
