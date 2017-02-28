@@ -46,7 +46,7 @@ module.exports = {
           url:
             description: "iFrame URL template"
             type: "string"
-            default: "https://www.google.com/maps/embed/v1/place?key={key}&q={latitude}+{longitude}"
+            default: "https://www.google.com/maps/embed/v1/place?key={key}&q={address}"
           enabled:
             description: "Enable iFrame updates"
             type: "boolean"
@@ -149,7 +149,7 @@ module.exports = {
           url:
             description: "iFrame URL template"
             type: "string"
-            default: "https://www.google.com/maps/embed/v1/place?key={key}&q={latitude}+{longitude}"
+            default: "https://www.google.com/maps/embed/v1/place?key={key}&q={address}"
           enabled:
             description: "Enable iFrame updates"
             type: "boolean"

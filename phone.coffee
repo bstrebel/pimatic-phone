@@ -418,7 +418,7 @@ module.exports = (env) =>
       # this == switch device !!!
       @phone.iFrame.enabled = state
       @phone.config.iFrame.enabled
-      @phone.iframeUpdate() if state
+      @phone.updateAddress() if state
       @phone.debug("@iFrame[enabled] set to #{@phone.iFrame.enabled}")
 
     _init: () =>
@@ -426,7 +426,6 @@ module.exports = (env) =>
       if !! @config.googleMaps.key
         @googleMapsClient = googlemaps.createClient({key: @config.googleMaps.key, Promise: Promise})
         @debug("Using googleMapsClient with key=#{@config.googleMaps.key}")
-        @_updateAddress()
       iFramePlugin = @pluginManager.getPlugin('iframe')
       if iFramePlugin?
         @debug("Found pimatic-iframe plugin")
@@ -449,7 +448,7 @@ module.exports = (env) =>
                 enabled: @config.iFrame.enabled
                 switch: actuator
               }
-              @iframeUpdate()
+              @_updateAddress()
             else
               env.logger.error("Missing template URL for #{@config.iFrame.id}")
             # else
@@ -659,7 +658,6 @@ module.exports = (env) =>
         for key, value of @.attributes
           @debug("* #{key}=#{@['_'+ key]}") if key isnt '__proto__' and @['_'+ key]?
           @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
-        @iframeUpdate()
 
       return Promise.resolve(@_locationResponse())
 
@@ -720,6 +718,7 @@ module.exports = (env) =>
         if !! location.address
           @debug("Using cached address [#{location.address}] for [#{@_tag}]")
           @_address = location.address
+          @iframeUpdate()
           return
         else
           @debug("Lookup address for [#{@_tag}]")
@@ -730,6 +729,7 @@ module.exports = (env) =>
         .then( (results) =>
           @_address = results[0].formatted_address
           @emit 'address', @_address
+          @iframeUpdate()
           # @debug("Google Maps API returned [#{@_address}]")
           if location?
             location.address = @_address
