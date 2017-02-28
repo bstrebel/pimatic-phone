@@ -107,6 +107,7 @@ module.exports = (env) =>
     locationFromTag: (tag) =>
       if tag?
         return _.find(@config.locations, 'tag': tag)
+      return null
 
     getTags: () =>
       # tags = []
@@ -287,6 +288,11 @@ module.exports = (env) =>
         params:
           tag:
             type: t.string
+      updateAddress:
+        description: "Update address of device"
+        params:
+          address:
+            type: t.string
       enter:
         description: "Enter geofence"
         params:
@@ -418,7 +424,7 @@ module.exports = (env) =>
       # this == switch device !!!
       @phone.iFrame.enabled = state
       @phone.config.iFrame.enabled
-      @phone.updateAddress() if state
+      @phone._updateAddress() if state
       @phone.debug("@iFrame[enabled] set to #{@phone.iFrame.enabled}")
 
     _init: () =>
@@ -448,7 +454,7 @@ module.exports = (env) =>
                 enabled: @config.iFrame.enabled
                 switch: actuator
               }
-              @updateAddress()
+              @_updateAddress()
             else
               env.logger.error("Missing template URL for #{@config.iFrame.id}")
             # else
@@ -502,6 +508,32 @@ module.exports = (env) =>
       @_type = "API"
       @_updateLocation(@_tag)
       return @_emitUpdates("Update location for \"#{@name}\": tag: [#{@_tag}]")
+
+    updateAddress: (address) ->
+      @debug("updateAddress: address=#{address}")
+      @_setTimeStamp()
+      @_source = "ADDR"
+      @_type = "API"
+      location = @_updateLocation(@_address)
+      @_tag = "unknown"
+      if location?
+        @_tag = location.tag
+      else
+        if @googleMapsClient? and @config.googleMaps?.geocoding
+          @_geocode({address: address})
+          .then( (results) =>
+            @_address = results[0].formatted_address
+            @_latitude = results[0].geometry?.location?.lat
+            @_longitude = results[0].geometry?.location?.lng
+            @emit 'address', @_address
+            @emit 'latitude', @_latitude
+            @emit 'longitude', @_longitude
+            @iframeUpdate()
+          )
+          .catch((err) -> return )
+        else
+          env.logger.error("Geocoding disabled. Cannot lookup address [#{@_address}]")
+      return @_emitUpdates("Update address for \"#{@name}\": address: [#{@_address}]")
 
     updatePhone: (serial, ssid, cellid, locn, loc) ->
       @debug("updatePhone: serial=#{serial} ssid=#{ssid} cellid=#{cellid} locn=#{locn} loc=#{loc}")
@@ -653,7 +685,7 @@ module.exports = (env) =>
         changed = false
 
       if changed or force
-        @updateAddress() # reverse geocoding
+        @_updateAddress() # reverse geocoding
         @debug("Updating device attributes [force=#{force}]")
         for key, value of @.attributes
           @debug("* #{key}=#{@['_'+ key]}") if key isnt '__proto__' and @['_'+ key]?
@@ -710,7 +742,7 @@ module.exports = (env) =>
         return Promise.reject(err)
       )
 
-    updateAddress: () ->
+    _updateAddress: () ->
       lookup = "#{@_latitude},#{@_longitude}"
       @_address = "unknown"
       location = plugin.locationFromTag(@_tag)
@@ -741,6 +773,7 @@ module.exports = (env) =>
       location = plugin.locationFromTag(@_tag)
       @_latitude = location?.gps?.latitude or null
       @_longitude = location?.gps?.longitude or null
+      return location
 
     iframeUpdate: () =>
       return unless @iFrame? and @_latitude? and @_longitude?
