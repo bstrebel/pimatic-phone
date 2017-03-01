@@ -618,12 +618,16 @@ Roadmap
 Changelog
 ---------
 
-v.0.9.2
+v0.9.3
+
+- fixed gpsLimit bug for Android devices
+
+v0.9.2
 
 - public release
 - new device action updatePluginConfig
 
-v.0.9.1
+v0.9.1
 
 - use (reverse) geocoding from Googlke Maps API
   make sure, your api key is activated for **Embed** and **Geocoding** API
