@@ -31,9 +31,11 @@ module.exports = {
           address:
             description: "Location address"
             type: "string"
+            default: ""
           data:
             description: "Additional location data"
             type: "object"
+            default: {}
           ssids:
             description: "WiFi SSIDs"
             type: "array"
@@ -48,12 +50,15 @@ module.exports = {
               latitude:
                 description: "Latitude"
                 type: "number"
+                default: 0
               longitude:
                 description: "Longitude"
                 type: "number"
+                default: 0
               radius:
                 description: "Radius (meter)"
                 type: "number"
+                default: 0
                 unit: "m"
           cids:
             description: "Cell tower IDs"

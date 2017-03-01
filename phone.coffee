@@ -35,7 +35,7 @@ module.exports = (env) =>
 
     init: (app, @framework, @config) =>
 
-      for location in @config.locations
+      for location in @locations()
         location["address"] = "" unless location.address?
         location["data"] = {} unless location.data?
 
@@ -67,11 +67,14 @@ module.exports = (env) =>
 
     afterInit: () =>
       return @_afterInit
+      
+    locations: () =>
+      return _.find(@framework.config.plugins, 'plugin': 'phone')?.locations or []
 
     tagFromGPS: (position, accuracy) =>
       result = {distance: null, tag: 'unknown'}
       if position?
-        for location in @config.locations
+        for location in @locations()
           if location.gps?
             gps = location.gps
             radius = if accuracy > 0 then accuracy else gps.radius
@@ -86,7 +89,7 @@ module.exports = (env) =>
 
     tagFromSSID: (ssid) =>
       if ssid?
-        for location in @config.locations
+        for location in @locations()
           if location.ssids?
             if location.ssids.indexOf(ssid) > -1
               return location.tag
@@ -94,7 +97,7 @@ module.exports = (env) =>
 
     tagFromCID: (cid) =>
       if cid?
-        for location in @config.locations
+        for location in @locations()
           if location.cids?
             if location.cids.indexOf(cid) > -1
               return location.tag
@@ -102,19 +105,19 @@ module.exports = (env) =>
 
     isValidTag: (tag) =>
       if tag?
-        return _.find(@config.locations, 'tag': tag)?
+        return _.find(@locations(), 'tag': tag)?
       return false
 
     locationFromTag: (tag) =>
       if tag?
-        return _.find(@config.locations, 'tag': tag)
+        return _.find(@locations(), 'tag': tag)
       return null
 
     getTags: () =>
       # tags = []
-      # _.forEach @config.locations, (location) ->
+      # _.forEach @locations(), (location) ->
       #  tags.push location.tag
-      return _.map @config.locations, 'tag'
+      return _.map @locations(), 'tag'
 
 
   plugin = new PhonePlugin
@@ -519,22 +522,42 @@ module.exports = (env) =>
       @_tag = "unknown"
       if location?
         @_tag = location.tag
-        @debug("updateAddress - found matching tag for address [#{address}]")
-        return @_emitUpdates("updateAddress")
-      else
-        if @googleMapsClient? and @config.googleMaps?.geocoding
-          @_geocode({address: address})
-          .then( (results) =>
-            @_address = results[0].formatted_address
-            @_latitude = results[0].geometry?.location?.lat
-            @_longitude = results[0].geometry?.location?.lng
-            @_tag = plugin.tagFromGPS({latitude: @_latitude, longitude: @_longitude})
-            @debug("updateAddress - found [#{@_address}] by geocoding lookup")
+        if location.gps?
+          gps = location.gps
+          if gps.latitude and gps.longitude
+            @debug("updateAddress - found matching tag and gps for address [#{address}]")
             return @_emitUpdates("updateAddress")
-          )
-          .catch((err) -> return )
-        else
-          env.logger.error("Geocoding disabled. Cannot lookup address [#{@_address}]")
+
+      @debug("updateAddress - no location found for address [#{address}]")
+      if @googleMapsClient? and @config.googleMaps?.geocoding
+        @_geocode({address: address})
+        .then( (results) =>
+
+          @_address = results[0].formatted_address
+          @_latitude = results[0].geometry?.location?.lat
+          @_longitude = results[0].geometry?.location?.lng
+
+          location = plugin.locationFromTag(address)
+          if location?
+            @debug("updateAddress - found location entry for [#{address}]")
+            if location.gps.radius is 0
+              @debug("updateAddress - add missing GPS entry")
+              location.gps.latitude = @_latitude
+              location.gps.longitude = @_longitude
+              location.gps.radius = 250
+            if !!location.address
+              @debug("updateAddress - add missing address info")
+              location.address = @_address
+          else
+            @_tag = plugin.tagFromGPS({latitude: @_latitude, longitude: @_longitude})
+
+          @debug("updateAddress - found [#{@_address}] by geocoding lookup")
+          return @_emitUpdates("updateAddress")
+        )
+        .catch((err) -> return )
+      else
+        env.logger.error("Geocoding disabled. Cannot lookup address [#{@_address}]")
+      return Promise.resolve()
 
     updatePhone: (serial, ssid, cellid, locn, loc) ->
       @debug("updatePhone: serial=#{serial} ssid=#{ssid} cellid=#{cellid} locn=#{locn} loc=#{loc}")
@@ -764,7 +787,7 @@ module.exports = (env) =>
       else
         @debug("Lookup address for unknown location with [#{lookup}]")
       ### reverse geocoding with lat/lng => @_address ###
-      if !!@_latitide and !!@_longitude
+      if !!@_latitude and !!@_longitude
         lookup = "#{@_latitude},#{@_longitude}"
         if @googleMapsClient? and @config.googleMaps?.reverseGeocoding
           @_geocode({latlng: lookup})
@@ -788,15 +811,19 @@ module.exports = (env) =>
       return location
 
     iframeUpdate: () =>
-      return unless @iFrame? and @_latitude? and @_longitude?
-      return unless @iFrame.enabled
+      return unless @iFrame?.enabled
       address = @_address
+      latitude = 0
+      longitude = 0
       if not address? or address == "" or address == "unknown"
-        address = "#{@_latitude.toString()} #{@_longitude.toString()}"
+        if !!@_latitude and !!@_longitude
+          latitude = @_latitude.toString()
+          longitude = @_longitude.toString()
+          address = "#{latitude} #{longitude}"
       url = @iFrame.url
         .replace("{key}", @config.googleMaps.key)
-        .replace("{latitude}", @_latitude.toString())
-        .replace("{longitude}", @_longitude.toString())
+        .replace("{latitude}", latitude)
+        .replace("{longitude}", longitude)
         .replace("{address}", encodeURIComponent(address))
       @debug("Reload iFrame with #{url}")
       @iFrame.device.loadIFrameWith(url)
