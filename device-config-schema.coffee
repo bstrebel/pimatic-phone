@@ -17,6 +17,10 @@ module.exports = {
         description: "Radius (m) for GPS mapping"
         type: "number"
         default: 250
+      gpsLimit:
+        description: "Log new position only if significantly moved"
+        type: "number"
+        default: 250
       googleMaps:
         description: "Optional Google Maps API options"
         type: "object"
