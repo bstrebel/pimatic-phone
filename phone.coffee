@@ -492,7 +492,6 @@ module.exports = (env) =>
       @_source = "GEO"
       @_tag = tag
       @_type = "API"
-      @_updateLocation(@_tag)
       return @_emitUpdates("enter")
 
     exit: (tag) ->
@@ -501,7 +500,6 @@ module.exports = (env) =>
       @_source = "GEO"
       @_tag = "unknown"
       @_type = "API"
-      @_updateLocation(@_tag)
       return @_emitUpdates("exit")
 
     updateTag: (tag) ->
@@ -510,7 +508,6 @@ module.exports = (env) =>
       @_source = "TAG"
       @_tag = tag
       @_type = "API"
-      @_updateLocation(@_tag)
       return @_emitUpdates("updateTag")
 
     updateAddress: (address) ->
@@ -518,7 +515,7 @@ module.exports = (env) =>
       @_setTimeStamp()
       @_source = "ADDR"
       @_type = "API"
-      location = @_updateLocation(address)
+      location = plugin.locationFromTag(address)
       @_tag = "unknown"
       if location?
         @_tag = location.tag
@@ -593,7 +590,6 @@ module.exports = (env) =>
       @_type = "CID"
       @_tag = plugin.tagFromCID(cell)
       @debug("updateCID: #{cell} -> #{@_tag}")
-      @_updateLocation(@_tag)
       return @_emitUpdates("updateCID", "")
 
     updateSSID: (ssid) ->
@@ -604,7 +600,6 @@ module.exports = (env) =>
       @_type = ssid
       @_tag = plugin.tagFromSSID(ssid)
       @debug("updateSSID: #{ssid} -> #{@_tag}")
-      @_updateLocation(@_tag)
       return @_emitUpdates("updateSSID")
 
     updateGPS: (latitude, longitude, accuracy, type) ->
@@ -687,6 +682,11 @@ module.exports = (env) =>
 
     _emitUpdates: (caller, force=false) ->
       env.logger.debug("Device #{@config.id}: Update requested by [#{caller}]")
+      # set gps location from current tag
+      location = plugin.locationFromTag(@_tag)
+      @_latitude = location?.gps?.latitude or null
+      @_longitude = location?.gps?.longitude or null
+
       @_processLocation(force)  # process GPS coordinates
 
       # update xLink URL
@@ -768,13 +768,16 @@ module.exports = (env) =>
       )
 
     _updateAddress: () ->
+
       ### previous address from geocoding => @_address ###
       if @_source == "ADDR" and !!@_address
         @debug("Keep geocoded address [#{@_address}]")
         @iframeUpdate()
         return Promise.resolve(@_address)
+
       @_address = "unknown"
       location = plugin.locationFromTag(@_tag)
+      
       ### cached valued from location => @_address ###
       if location?
         if !!location.address
@@ -786,6 +789,7 @@ module.exports = (env) =>
           @debug("Lookup address for [#{@_tag}]")
       else
         @debug("Lookup address for unknown location with [#{lookup}]")
+
       ### reverse geocoding with lat/lng => @_address ###
       if !!@_latitude and !!@_longitude
         lookup = "#{@_latitude},#{@_longitude}"
@@ -800,15 +804,9 @@ module.exports = (env) =>
             return Promise.resolve(@_address)
           )
           .catch((err) -> return Promise.reject(err))
+
       ### return with @_address == "unknown" ###
       return Promise.resolve(@_address)
-
-    _updateLocation: (tag) =>
-      # set gps location from tag
-      location = plugin.locationFromTag(tag)
-      @_latitude = location?.gps?.latitude or null
-      @_longitude = location?.gps?.longitude or null
-      return location
 
     iframeUpdate: () =>
       return unless @iFrame?.enabled
