@@ -10,6 +10,11 @@ pimatic-phone
 
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/iframe.png" width="1020">
 
+Step-by-step instructions to setup a phone device with Google iFrame
+mapping, geocoding and iCloud update control as outlined in the above
+screenshot are available in a seperate
+[Cookbook](https://github.com/bstrebel/pimatic-phone/blob/master/CookBook.md)
+
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/frontend.png" width="1020">
 
 A generic pimatic plugin for mobile devices to provide location based
@@ -613,11 +618,17 @@ Roadmap
 Changelog
 ---------
 
-v.0.9.0
+v.0.9.2
+
+- public release
+- new device action updatePluginConfig
+
+v.0.9.1
 
 - use (reverse) geocoding from Googlke Maps API
   make sure, your api key is activated for **Embed** and **Geocoding** API
 - addtional attribute "address" (from config or reverseGeocoding)
+- addtitional action updateAddress for reverse geocoding
 - plugin an device configuratin changes (ignore warnings thrown on first
     startup with new plugin configuration
 
