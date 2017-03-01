@@ -745,12 +745,14 @@ module.exports = (env) =>
       )
 
     _updateAddress: () ->
+      ### previous address from geocoding => @_address ###
       if @_source == "ADDR" and !!@_address
         @debug("Keep geocoded address [#{@_address}]")
         @iframeUpdate()
         return Promise.resolve(@_address)
-      lookup = "#{@_latitude},#{@_longitude}"
+      @_address = "unknown"
       location = plugin.locationFromTag(@_tag)
+      ### cached valued from location => @_address ###
       if location?
         if !!location.address
           @debug("Using cached address [#{location.address}] for [#{@_tag}]")
@@ -761,18 +763,22 @@ module.exports = (env) =>
           @debug("Lookup address for [#{@_tag}]")
       else
         @debug("Lookup address for unknown location with [#{lookup}]")
-      if @googleMapsClient? and @config.googleMaps?.reverseGeocoding
-        @_geocode({latlng: lookup})
-        .then( (results) =>
-          @_address = results[0].formatted_address
-          @emit 'address', @_address
-          @iframeUpdate()
-          # @debug("Google Maps API returned [#{@_address}]")
-          if location?
-            location.address = @_address
-          return Promise.resolve(@_address)
-        )
-        .catch((err) -> return Promise.reject(err))
+      ### reverse geocoding with lat/lng => @_address ###
+      if !!@_latitide and !!@_longitude
+        lookup = "#{@_latitude},#{@_longitude}"
+        if @googleMapsClient? and @config.googleMaps?.reverseGeocoding
+          @_geocode({latlng: lookup})
+          .then( (results) =>
+            @_address = results[0].formatted_address
+            @emit 'address', @_address
+            @iframeUpdate()
+            if location?
+              location.address = @_address
+            return Promise.resolve(@_address)
+          )
+          .catch((err) -> return Promise.reject(err))
+      ### return with @_address == "unknown" ###
+      return Promise.resolve(@_address)
 
     _updateLocation: (tag) =>
       # set gps location from tag
