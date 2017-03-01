@@ -1,6 +1,7 @@
 module.exports = (env) =>
 
   Promise = env.require 'bluebird'
+  assert = env.require 'cassert'
   _ = env.require 'lodash'
   t = env.require('decl-api').types
 
@@ -75,7 +76,7 @@ module.exports = (env) =>
       result = {distance: null, tag: 'unknown'}
       if position?
         for location in @locations()
-          if location.gps?
+          if location.gps? and location.gps.radius?
             gps = location.gps
             radius = if accuracy > 0 then accuracy else gps.radius
             try
@@ -339,6 +340,8 @@ module.exports = (env) =>
         description: "Return current device location"
       fetchPreviousLocation:
         description: "Return previous device location"
+      updatePluginConfig:
+        description: "Update location settings via geocoding lookups"
 
     # attribute getter methods
     getSource: () -> Promise.resolve(@_source)
@@ -510,6 +513,55 @@ module.exports = (env) =>
       @_type = "API"
       return @_emitUpdates("updateTag")
 
+    updatePluginConfig: () ->
+      @debug("updatePluginConfig")
+      enabled = @googleMapsClient? and
+        @config.googleMaps?.geocoding and
+        @config.googleMaps?.reverseGeocoding
+      if not enabled
+        return Promise.reject("Google Maps Geocoding not enabled!")
+      lookupLocations = []
+      lookupPromises = []
+      for location in plugin.locations()
+        tag = location.tag
+        gps = location.gps? and location.gps.radius?
+        addr = !!location.address
+        if !gps and addr
+          @debug("No GPS found for [#{tag}], using [#{location.address}] for geocoding lookup")
+          lookupLocations.push(location)
+          lookupPromises.push(@_geocode({address: location.address}))
+        else if !addr and gps
+          if location.gps.latitude? and location.gps.longitude?
+            lookup = "#{location.gps.latitude},#{location.gps.longitude}"
+            @debug("No address found for [#{tag}], using #{lookup} for reverseGeocoding lookup")
+            lookupLocations.push(location)
+            lookupPromises.push(@_geocode({latlng: lookup}))
+        else if !addr and !gps
+          @debug("Cannot update [#{location.tag}]: GPS or address required!")
+        else
+          GPS="#{location.gps.latitude},#{location.gps.longitude}"
+          ADDR="#{location.address}"
+          @debug("#{location.tag}: #{GPS} #{ADDR}")
+
+      Promise.all(lookupPromises)
+      .then( (allResults) =>
+        for results, index in allResults
+          location = lookupLocations[index]
+          if !!location.address
+            location.gps.latitude  = results[0].geometry?.location?.lat
+            location.gps.longitude = results[0].geometry?.location?.lng
+            location.gps.radius = 250
+            lookup = "#{location.gps.latitude},#{location.gps.longitude}"
+            @debug("Update [#{location.tag}] with #{lookup} from lookup")
+          else
+            location.address = results[0].formatted_address
+            @debug("Updated #{location.tag} with #{location.address}")
+        @framework.saveConfig()
+        return Promise.resolve(true)
+      )
+      .catch( (err) => return Promise.reject(false))
+
+
     updateAddress: (address) ->
       @debug("updateAddress address=#{address}")
       @_setTimeStamp()
@@ -533,20 +585,7 @@ module.exports = (env) =>
           @_address = results[0].formatted_address
           @_latitude = results[0].geometry?.location?.lat
           @_longitude = results[0].geometry?.location?.lng
-
-          location = plugin.locationFromTag(address)
-          if location?
-            @debug("updateAddress - found location entry for [#{address}]")
-            if location.gps.radius is 0
-              @debug("updateAddress - add missing GPS entry")
-              location.gps.latitude = @_latitude
-              location.gps.longitude = @_longitude
-              location.gps.radius = 250
-            if !!location.address
-              @debug("updateAddress - add missing address info")
-              location.address = @_address
-          else
-            @_tag = plugin.tagFromGPS({latitude: @_latitude, longitude: @_longitude})
+          @_tag = plugin.tagFromGPS({latitude: @_latitude, longitude: @_longitude})
 
           @debug("updateAddress - found [#{@_address}] by geocoding lookup")
           return @_emitUpdates("updateAddress")
@@ -664,28 +703,38 @@ module.exports = (env) =>
 
       # calculate distance for every location tag
       if @_gps_current?
-        for location in plugin.config.locations
+        for location in plugin.locations()
           attributeName = "_distanceTo" + location.tag
           distance = null
           if location.tag == @_tag
             distance = 0
           else
-            if location.gps?
+            if location.gps? and location.gps.latitude?
               try
                 distance = geolib.getDistance(@_gps_current, location.gps)
               catch error
                 env.logger.error(error)
+            else
+              distance = null
 
           # update distance attribute for this location
           @[attributeName] = distance
-          @debug("Distance to #{location.tag}: #{distance}m")
+          dMsg = if distance? then distance + 'm' else 'unknown!'
+          @debug("Distance to #{location.tag}: #{dMsg}")
 
     _emitUpdates: (caller, force=false) ->
       env.logger.debug("Device #{@config.id}: Update requested by [#{caller}]")
+
       # set gps location from current tag
       location = plugin.locationFromTag(@_tag)
-      @_latitude = location?.gps?.latitude or null
-      @_longitude = location?.gps?.longitude or null
+      if location?
+        assert(@_tag == location.tag)
+        @_latitude = location.gps?.latitude or null
+        @_longitude = location.gps?.longitude or null
+      else
+        assert(@_tag == "unknown")
+        if !!@_latitude or !!@_longitude
+          @debug("[No location information available!]")
 
       @_processLocation(force)  # process GPS coordinates
 
@@ -788,7 +837,7 @@ module.exports = (env) =>
         else
           @debug("Lookup address for [#{@_tag}]")
       else
-        @debug("Lookup address for unknown location with [#{lookup}]")
+        @debug("Lookup address for unknown location")
 
       ### reverse geocoding with lat/lng => @_address ###
       if !!@_latitude and !!@_longitude
