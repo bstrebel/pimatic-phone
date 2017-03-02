@@ -618,6 +618,10 @@ Roadmap
 Changelog
 ---------
 
+v0.9.4
+
+- fixed files in package.json
+
 v0.9.3
 
 - fixed gpsLimit bug for Android devices
