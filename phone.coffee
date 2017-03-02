@@ -76,16 +76,17 @@ module.exports = (env) =>
       result = {distance: null, tag: 'unknown'}
       if position?
         for location in @locations()
-          if location.gps? and location.gps.radius?
+          if location.gps?
             gps = location.gps
-            radius = if accuracy > 0 then accuracy else gps.radius
-            try
-              if geolib.isPointInCircle(position, gps, radius)
-                distance = geolib.getDistance(position, gps)
-                if result.distance == null or result.distance > distance
-                  result = {distance: distance, tag: location.tag}
-            catch error
-              env.logger.error(error.message)
+            if gps.radius? and gps.latitude? and gps.longitude?
+              radius = if accuracy > 0 then accuracy else gps.radius
+              try
+                if geolib.isPointInCircle(position, gps, radius)
+                  distance = geolib.getDistance(position, gps)
+                  if result.distance == null or result.distance > distance
+                    result = {distance: distance, tag: location.tag}
+              catch error
+                env.logger.error(error.message)
       return result.tag
 
     tagFromSSID: (ssid) =>
