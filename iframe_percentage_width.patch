@@ -1,0 +1,117 @@
+From f9676c683a59e4cc6c6c57f4166af88b59f2d04e Mon Sep 17 00:00:00 2001
+From: Bernd Strebel <b.strebel@digitec.de>
+Date: Fri, 10 Feb 2017 13:19:49 +0100
+Subject: [PATCH] variable iframe width patch
+
+---
+ README.md                   | 2 ++
+ app/iframe-page.coffee      | 6 ++++--
+ app/iframe-template.html    | 2 +-
+ device-config-schema.coffee | 6 +++++-
+ iframe.coffee               | 6 ++++++
+ 5 files changed, 18 insertions(+), 4 deletions(-)
+
+diff --git a/README.md b/README.md
+index c0b9113..053b5d1 100644
+--- a/README.md
++++ b/README.md
+@@ -24,6 +24,7 @@ Please have a look at the Trouble Shooting section below if the content isn't di
+       "name": "My iframe",
+       "url": "http://www.pimatic.org",
+       "width": 340,
++      "unit": "px"
+       "height": 240,
+       "border": 1,
+       "scrolling": "yes",
+@@ -41,6 +42,7 @@ Description:
+ 
+     url : URL that will be displayed in the iframe
+     width : Width of iframe
++    unit: Unit of witdth specification (px, %)
+     height : Height of iframe
+     border : Show border around iframe (1 = yes, 0 = no)
+     scrolling : Show scrollbars in iframe (yes/no)
+diff --git a/app/iframe-page.coffee b/app/iframe-page.coffee
+index f8ec45a..88d1203 100644
+--- a/app/iframe-page.coffee
++++ b/app/iframe-page.coffee
+@@ -8,13 +8,15 @@ $(document).on( "templateinit", (event) ->
+ 			@name = @device.name
+ 			@url = @device.config.url
+ 			@width = @device.config.width ? @device.configDefaults.width
++			@unit = @device.config.unit ? @device.configDefaults.unit
+ 			@height = @device.config.height ? @device.configDefaults.height
+ 			@border = @device.config.border ? @device.configDefaults.border
+ 			@scrolling = @device.config.scrolling ? @device.configDefaults.scrolling
+ 			@overflow = ko.observable(if @scrolling is 'no' then 'hidden' else 'auto')
+ 			@scale = @device.config.scale ? @device.configDefaults.scale
+-			@divWidth = Math.round(@width * @scale) + (2 * @border)
+-			@divHeight = Math.round(@height * @scale) + (2 * @border)
++			if @unit == "px"
++				@divWidth = Math.round(@width * @scale) + (2 * @border)
++			@divHeight = Math.round(@hight * @scale) + (2 * @border)
+ 			@reload = @device.config.reload  ? @device.configDefaults.reload
+ 			super(templData,@device)
+ 
+diff --git a/app/iframe-template.html b/app/iframe-template.html
+index fa9bbd8..68b5fff 100644
+--- a/app/iframe-template.html
++++ b/app/iframe-template.html
+@@ -17,7 +17,7 @@
+                                     scrolling: scrolling
+                                 },
+                                 style:{
+-                                    width: width + 'px',
++                                    width: width + unit,
+                                     height: height + 'px',
+                                     border: border + 'px solid black',
+                                     transform: 'scale(' + scale + ')',
+diff --git a/device-config-schema.coffee b/device-config-schema.coffee
+index f2c20fd..9be04bc 100644
+--- a/device-config-schema.coffee
++++ b/device-config-schema.coffee
+@@ -13,8 +13,12 @@ module.exports = {
+ 				description: "Width of iframe"
+ 				type: "number"
+ 				default : 340
++			unit:
++				description: "Unit of width specification"
++				enum: ["px", "%"]
++				default: "px"
+ 			height:
+-				description: "Height of iframe"
++				description: "Height of iframe (px)"
+ 				type: "number"
+ 				default : 240
+ 			border:
+diff --git a/iframe.coffee b/iframe.coffee
+index d0b9536..7efa060 100644
+--- a/iframe.coffee
++++ b/iframe.coffee
+@@ -40,6 +40,10 @@ module.exports = (env) ->
+ 				description: "Width of the Image"
+ 				type: "number"
+ 				default : 340
++			unit:
++				description: "Unit of width spec"
++				type: "string"
++				default : "px"
+ 			height:
+ 				description: "Height of the Image"
+ 				type: "number"
+@@ -74,6 +78,7 @@ module.exports = (env) ->
+ 			@name = @config.name
+ 			@url = @config.url
+ 			@width = @config.width
++			@unit = @config.unit
+ 			@height = @config.height
+ 			@border = @config.border
+ 			@scrolling = @config.scrolling
+@@ -93,6 +98,7 @@ module.exports = (env) ->
+ 			return Promise.resolve()
+ 
+ 		getWidth: -> Promise.resolve(@width)
++		getUnit: -> Promise.resolve(@unit)
+ 		getHeight: -> Promise.resolve(@height)
+ 		getUrl: -> Promise.resolve(@url)
+ 		getBorder: -> Promise.resolve(@border)
