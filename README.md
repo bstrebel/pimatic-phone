@@ -8,35 +8,97 @@
 pimatic-phone
 =============
 
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/iframe.png" width="1020">
+
+Step-by-step instructions to setup a phone device with Google iFrame
+mapping, geocoding and iCloud update control as outlined in the above
+screenshot are available in a seperate
+[Cookbook](https://github.com/bstrebel/pimatic-phone/blob/master/CookBook.md)
+
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/frontend.png" width="1020">
+
 A generic pimatic plugin for mobile devices to provide location based
 devices. Continuous GPS tracking and reverse geocoding are expensive in
 terms of mobile power consumption and Google/OSM API requests. Many
 location based rules will work well with known locations like "Home" or
-"Office". The plugin was inspired by the [pimatic-location-plugin](https://pimatic.org/plugins/pimatic-location/) but uses a
+"Office". The plugin was inspired by the [pimatic-locatin-plugin](https://pimatic.org/plugins/pimatic-location/) but uses a
 different device layout and (as of Rev. 0.6.0) a session based iCloud client
 from [icloud-promise](https://www.npmjs.com/package/icloud-promise) for **iOS** devices.
 
 The signature of the _updateLocation_ API call provides compatibility
 with the Android App [PimaticLocation](https://github.com/Oitzu/pimatic-location).
 
+From revision Rev. 0.9.0 reverse Geocoding for the also supported. The new
+address attribute could be maintained manually through the plugin location
+map configuration or by reverse Geocoding by the Google Maps Geocoding API.
+
+**Make sure, your Google API key ist at least activated for
+the Google Maps Embed API and the Google Maps Geocoding API.**
+
+With revision Rev. 0.8.0 an iframeDevice from pimatic-iframe can be utilized
+to show the current location on a map. Default settings use the Google Maps Embed API.
+You have to register a project at the [Google Developer Console](https://console.developers.google.com) and
+generate an API key.
+
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/config.png" width="480">
+
 **Some remarks on iOS devices**
 
 - Notification emails: A notification email from Apple is generated when
-    the iCloud session is established on pimatic startup/device creation
+    the iCloud session is established on pimatic startup/device creation.
 
-- Two factor authentication: If activated, a notification dialog pops up
-    on your device requiring a confirmation for the session. Also a
-    verification code is displayed. It seems that neither the confirmation
-    nor the verification code is necessary to access the iCloud device
-    information.
-
-- Update interval: Requesting location information from the iPhone triggers
+- Update interval (I): Requesting location information from the iPhone triggers
     the device to push the data to the iCloud. A short period increases
     power consumption significantly and may drain your battery.
 
-- Session ID and cookies are not permanently stored but recreated at
-    pimatic startup/iOS device initialisation
+- Update interval (II): Use rules and the pimatic-phone API to suspend location
+    updates, e.g. if the device is connected to WiFi at home: Use [pimatic-ping](https://pimatic.org/plugins/pimatic-ping/)
+    or [pimatic-cron](https://pimatic.org/plugins/pimatic-cron/) to trigger the suspend by executing (inspired by a request
+    at the [pimatic forum](https://forum.pimatic.org/topic/2719/pimatic-phone-icloud-error/37)). This feature could not be used if you have
+    two factor authentication activated. See 2FA remarks (see below).
+    As of Rev. 0.8.0 you can define a DummySwitch to enable/disable
+    iCloud updates through the mobile frontend and since Rev. 0.8.5 you can use
+    the new actions "suspend <phone device>" and "resume <phone device>" to
+    control updates through the iCloud interface.
 
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/switch.png" width="480">
+
+```
+    curl --user "admin:admin" --silent --request GET \
+    http://localhost:8080/api/device/<IPHONE>/suspend?flag=true
+```
+
+- Session ID and cookies are not permanently stored but recreated at
+    pimatic startup/iOS device initialisation. Their is no automatic reconnect
+    of sessions to avoid flooding with notification mails due to configuration
+    issues or other problems. In case of an error and a lost connection
+    open the configuration dialog of the device. A new session is established
+    when you recreate the device by clicking the save button. Their is no need
+    to restart pimatic.
+
+- Two factor authentication (2FA): If activated, a notification dialog pops up
+    on your device requiring a confirmation for the session. Also a
+    verification code is displayed. It seems that neither the confirmation
+    nor the verification code is really necessary to access the iCloud device
+    information. You can avoid this messages by generating a verification
+    code on your iPhone (Settings -> iCloud -> Apple ID -> Security
+    -> Verification Code) and use this code in the iCloudVerify configuration
+    option. Currently their is no possibility to refresh 2FA sessions.
+    Keep your iCloudInterval lesser then the session timeout of 600 seconds.
+    As of Rev. 0.7.6 additional API calls (enable/disableUpdates, see API
+    documentation below) may be used to suspend updates for 2FA sessions.
+    Due to limitations of the iCloud API logout and login calls have to be
+    performed and Apple notification mails are triggered by the enableUpdates
+    call. You have to provide a valid verification code or '000000' as in
+    https://.../enableUpdates?code=000000.
+
+    As of Rev. 0.8.5 you can use the new actions "suspend" and "resume"
+    to control the iCloud updates. The resume action takes an additional
+    argument "with <verification code>" if 2FA is enabled. Combined with
+    rules, a buttons device und a variable input device you can realize
+    a comfortable frontend to control suspend/resume with verification codes.
+
+<img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/2FA.png" width="480">
 
 As of Rev. 0.4.6 an additional API call _updatePhone_ provides a simple to use
 interface for **Android** devices running the Tasker APP. Download and import the
@@ -46,7 +108,34 @@ See the [Tasker Setup Guide](https://github.com/bstrebel/pimatic-phone/blob/mast
 The location map allows you to define such well known location tags and
 let you use the most suitable method (native apps, tasker jobs, GPS/GSM
 tracking, WLAN connections, etc.) to update the location of a mobile
-device.
+device. Location tags are similar to geofences and client apps like [Locative](https://github.com/LocativeHQ)
+for [iOS](https://itunes.apple.com/de/app/locative/id725198453?mt=8) or [Android](https://play.google.com/store/apps/details?id=io.locative.app&hl=de) can be used to update the device location with the new
+ GET requests _enter_ and _exit_. See API documentation below for details.
+
+As of revision 0.7.5 all API calls return the current device location on
+success.
+```json
+{
+  "result":
+  {
+    "tag":"Home",
+    "source":"TAG",
+    "type":"API",
+    "time":"2017-02-02 15:47:05",
+    "utc":1486046825540,    
+    "gps":
+    {
+      "latitude":53.12345678,
+      "longitude":10.87654321
+    }
+  },
+  "success":true
+}
+```
+Also two additional api calls _fetchLocation_ and _fetchPreviousLocation_
+are implemented to provide the location information by simple GET requests.
+See the API documentation below for details.
+
 
 Location based rules
 --------------------
@@ -157,7 +246,7 @@ calls (Tasker scripts, Apps)
     }
 ```
 
-**PhoneDeviceIOS:** Apple mobile devices, uses fmipservice API to update
+**PhoneDeviceIOS:** Apple mobile devices, uses icloud-promise API to update
 the location periodically
 
 ```coffeescript
@@ -174,14 +263,95 @@ the location periodically
     }
 ```
 
+Device configuration option details
+
+```coffeescript
+
+  PhoneDevice:
+    title: "Phone device config"
+    type: "object"
+    extensions: ["xAttributeOptions", "xLink"]
+    properties:
+      serial:
+        description: "Serial number of device"
+        type: "string"
+        default: ""
+      debug:
+        description: "Enable debug output"
+        type: "boolean"
+        default: false
+      accuracy:
+        description: "Radius (m) for GPS mapping"
+        type: "number"
+        default: 250
+      xLinkTemplate:
+        description: "URL template"
+        type: "string"
+        default: "https://www.google.com/maps?q={latitude}+{longitude}"
+
+  PhoneDeviceIOS:
+    title: "iPhone device configuration"
+    type: "object"
+    extensions: ["xAttributeOptions", "xLink"]
+    properties:
+      iCloudUser:
+        description: "iCloud user (Apple ID)"
+        type: "string"
+        default: ""
+      iCloudPass:
+        description: "iCloud password"
+        type: "string"
+        default: ""
+      iCloudVerify:
+        description: "iCloud 2FA verification code"
+        type: "string"
+        default: "000000"
+      iCloudDevice:
+        description: "iCloud device name"
+        type: "string"
+        default: ""
+      iCloudInterval:
+        description: "iCloud poll interval (seconds)"
+        type: "integer"
+        default: 300
+      iCloudSessionTimeout:
+        description: "iCloud session expiration timeout"
+        type: "integer"
+        default: 600
+      iCloudSuspended:
+        description: "iCloud updates suspended"
+        type: "boolean"
+        default: false
+      iCloudTimezone:
+        description: "iCloud client timezone"
+        type: "string"
+        default: "Europe/Berlin"
+      debug:
+        description: "Enable debug output"
+        type: "boolean"
+        default: false
+      accuracy:
+        description: "Radius (m) for GPS mapping"
+        type: "number"
+        default: 250
+      gpsLimit:
+        description: "Log new position only if significantly moved"
+        type: "number"
+        default: 250
+      xLinkTemplate:
+        description: "URL template"
+        type: "string"
+        default: "https://www.google.com/maps?q={latitude}+{longitude}"
+
+```
+
 Attributes
 ----------
 
-The following attributes are available are used and can be used for
-logging or displayed in the frontend
+The following attributes are available and can be used for logging or
+displayed in the frontend.
 
 ```coffeescript
-    attributes:
       timeSpec:
         label: "Update time spec"
         description: "Date and time of the last location update."
@@ -208,23 +378,15 @@ logging or displayed in the frontend
         displaySparkline: false
         hidden: false
         discrete: true
-       location:
-         description: "Alias for the tag attribute"
-         type: t.string
-         unit: ""
-         acronym: 'LOC'
-         displaySparkline: false
-         hidden: true
-         discrete: true
-       position:
-         description: "Alias for the tag attribute"
-         type: t.string
-         unit: ""
-         acronym: 'LOC'
-         displaySparkline: false
-         hidden: true
-         discrete: true
-     type:
+      previousTag:
+        description: "Previous location of the device"
+        type: t.string
+        unit: ""
+        acronym: 'PREV'
+        displaySparkline: false
+        hidden: true
+        discrete: true
+      type:
         label: "Type"
         description: "Type of position data"
         type: t.string
@@ -256,10 +418,6 @@ logging or displayed in the frontend
         acronym: 'ACC'
         displaySparkline: false
         hidden: true
-      gpsLimit:
-        description: "Log new position only if significantly moved"
-        type: "number"
-        default: 250
       cell:
         label: "Cell"
         description: "Cell ID"
@@ -284,6 +442,13 @@ logging or displayed in the frontend
         acronym: 'GPS'
         displaySparkline: false
         hidden: true
+      suspended:
+        label: "Suspended"
+        description: "iCloud updates suspended"
+        type: t.boolean
+        acronym: 'OFF'
+        displaySparkline: false
+        hidden: true        
 ```
 
 Many of the attributes are volatile in nature. Adjust database logging
@@ -334,22 +499,35 @@ where <host> is the domain name/address of your pimatic instance,
 | call          | key(s)   | value  | comment                         |
 |---------------|----------|--------|---------------------------------|
 |updateTag|tag|location tag|set the location tag directly|
+|enter|tag|location tag|set the location tag from geofence app|
+|exit|tag|location tag|set the location tag from geofence app|
 |updateGPS|latitude,longitude,accuracy,source|gps data|used internally for iCloud devices|
 |updateCID|cid|%CELLID| Android tasker mobile cell ID|
 |updateSSID|ssid|ssid|SSID of connected WLAN
 |updateLocation|long,lat,updateAddress|gps data|legacy call for PimaticLocation Android App|
+|updatePhone|serial,ssid,ssid,...|Tasker vasrs|see [documentation](https://github.com/bstrebel/pimatic-phone/blob/master/assets/TaskerSetup.md) for details|
+|fetchLocation|n/a|n/a|return current device location|
+|fetchPreviousLocation|n/a|n/a| return the previous location|
+|suspend|flag|true/false, on/off|suspend location updates, iOS devices only!|
+|disableUpdates|n/a|n/a|logout and disable updates for iOS devices with 2FA|
+|enableUpdates|code (verification)|000000|login and enable updates for iOS devices with 2FA|
 
-Available API call os of Rev. 0.1.1
+Example:
+```
+    curl --user "admin:admin" --silent --request GET \
+    http://localhost:8080/api/device/<IPHONE>/enter?tag=Home
+```
+
+Available API call os of Rev. 0.7.5
 
 ```coffeescript
-    actions:
       update:
-        decription: "Variable update record"
+        description: "Variable update record"
         params:
           record:
             type: t.string
       updatePhone:
-        decription: "Update from Android Tasker APP"
+        description: "Update from Android Tasker APP"
         params:
           serial:
             type: t.string
@@ -363,6 +541,16 @@ Available API call os of Rev. 0.1.1
             type: t.string
       updateTag:
         description: "Update location tag of device"
+        params:
+          tag:
+            type: t.string
+      enter:
+        description: "Enter geofence"
+        params:
+          tag:
+            type: t.string
+      exit:
+        description: "Exit geofence"
         params:
           tag:
             type: t.string
@@ -394,6 +582,23 @@ Available API call os of Rev. 0.1.1
             type: t.number
           updateAddress:
             type: t.number
+      suspend:
+        description: "Suspend iCloud location updates"
+        params:
+          flag:
+            type: t.string
+      fetchLocation:
+        description: "Return current device location"
+      fetchPreviousLocation:
+        description: "Return previous device location"
+      disableUpdates:
+        description: "Disable iCloud location updates"
+      enableUpdates:
+        description: "Enable iCloud location updates"
+        params:
+          code:
+            description: "iCloud 2FA verification code code"
+            type: t.string
 ```
 
 TODO: detailed description of calls and params, curl examples, tasker
@@ -404,13 +609,101 @@ Roadmap
 
 * ~~Generate HTML links to display device location in Google Maps~~
 * ~~Generate HTML links to display device location in Open Street Map~~
-* Display current location in maps iframe (Google/OSM)
+* ~~Display current location in maps iframe (Google/OSM)~~
 * ~~Add distance attribute (distance between geo locations)~~
-* Use Google Maps and/or OSM for route calculations
-* Add route attribute (routing distance road)
+* Provide device predicates: location, distance, eta, ...
+* Use Google Maps for route calculations
+
 
 Changelog
 ---------
+
+v0.9.4
+
+- fixed files in package.json
+
+v0.9.3
+
+- fixed gpsLimit bug for Android devices
+
+v0.9.2
+
+- public release
+- new device action updatePluginConfig
+
+v0.9.1
+
+- use (reverse) geocoding from Googlke Maps API
+  make sure, your api key is activated for **Embed** and **Geocoding** API
+- addtional attribute "address" (from config or reverseGeocoding)
+- addtitional action updateAddress for reverse geocoding
+- plugin an device configuratin changes (ignore warnings thrown on first
+    startup with new plugin configuration
+
+
+v0.8.5
+
+- iOS device config changes
+    iCloudVerifyVariable to use with  VariableInputDevice
+    iCloud2FA used during startup before a iCloud connection is availabel
+
+- provide first pimatic actions "set location" and "suspend/resume"
+
+v0.8.4
+
+- more diagnostic output if device specific debug is enabled
+
+v0.8.3
+
+- suspend attribute refactoring
+
+v0.8.2
+
+- bugfix device recreation error
+
+
+v0.8.0
+
+- use pimatic-iframe for device location
+- use DummySwitch for iCloud update suspend
+
+
+v0.7.7
+
+- bugfix device initialization from lastState
+
+v0.7.6
+
+- iCloudSuspended configuration attribute
+- disable/enableUpdates API calls for 2FA sessions
+
+v0.7.5
+
+- API calls return JSON response
+- support for previousLocation attributes
+- additional API calls: enter, exit, fetchLocation, fetchPreviousLocation
+
+v0.7.3
+
+- force UI update on recreation of device
+- additional device debugging output if enabled
+- minor bugfixes
+
+v0.7.2
+
+- use refreshClient during initalization
+
+v0.7.1
+
+- validate device location (may be undefined) if location service
+    is disabled
+
+
+v0.7.0
+
+- enhanced configuration options for iOS devices
+- use icloud-promise module
+- suspend iCloud location updates via AOI call
 
 v0.6.3
 
