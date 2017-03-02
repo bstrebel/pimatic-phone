@@ -618,6 +618,10 @@ Roadmap
 Changelog
 ---------
 
+v0.9.5
+
+- bugfix GPS validation
+
 v0.9.4
 
 - fixed files in package.json

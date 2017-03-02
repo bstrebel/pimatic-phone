@@ -13,7 +13,7 @@
     "device-config-schema.coffee",
     "LICENSE"
   ],
-  "version": "0.9.4",
+  "version": "0.9.5",
   "homepage": "https://github.com/bstrebel/pimatic-phone",
   "private": false,
   "repository": {
