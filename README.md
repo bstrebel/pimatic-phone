@@ -12,8 +12,7 @@ pimatic-phone
 
 Step-by-step instructions to setup a phone device with Google iFrame
 mapping, geocoding and iCloud update control as outlined in the above
-screenshot are available in a seperate
-[Cookbook](https://github.com/bstrebel/pimatic-phone/blob/master/CookBook.md)
+screenshot are available in a separate [Cookbook](https://github.com/bstrebel/pimatic-phone/blob/master/CookBook.md)
 
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/frontend.png" width="1020">
 
@@ -32,7 +31,7 @@ From revision Rev. 0.9.0 reverse Geocoding for the also supported. The new
 address attribute could be maintained manually through the plugin location
 map configuration or by reverse Geocoding by the Google Maps Geocoding API.
 
-**Make sure, your Google API key ist at least activated for
+**Make sure, your Google API key is at least activated for
 the Google Maps Embed API and the Google Maps Geocoding API.**
 
 With revision Rev. 0.8.0 an iframeDevice from pimatic-iframe can be utilized
@@ -42,8 +41,7 @@ generate an API key.
 
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/config.png" width="480">
 
-**Some remarks on iOS devices**
-
+## iOS devices
 - Notification emails: A notification email from Apple is generated when
     the iCloud session is established on pimatic startup/device creation.
 
@@ -100,19 +98,29 @@ generate an API key.
 
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/2FA.png" width="480">
 
+## Android devices
 As of Rev. 0.4.6 an additional API call _updatePhone_ provides a simple to use
 interface for **Android** devices running the Tasker APP. Download and import the
 [sample project](https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/assets/Pimatic.prj.xml) to Tasker and change the server settings in the HTTP Get task.
 See the [Tasker Setup Guide](https://github.com/bstrebel/pimatic-phone/blob/master/assets/TaskerSetup.md) for details.
 
-The location map allows you to define such well known location tags and
-let you use the most suitable method (native apps, tasker jobs, GPS/GSM
-tracking, WLAN connections, etc.) to update the location of a mobile
-device. Location tags are similar to geofences and client apps like [Locative](https://github.com/LocativeHQ)
+## Location Map
+The location map (maintained in the plugin settings) allows you to define
+well known location tags and let you use the most suitable method (native apps,
+tasker jobs, GPS/GSM tracking, WLAN connections, etc.) to update the location
+of a mobile device.
+
+Since Rev. 0.4.2 **overlapping locations** are supported. You can, for
+example, define a location "Home" with latitude=55.60, longitude=10.80 and
+radius=250m and a location "NearHome" with the same gps data but a
+radius of 1000m. A distance of 200m will provide the location "Home",
+500m give you "NearHome".
+
+Location tags are similar to geofences and client apps like [Locative](https://github.com/LocativeHQ)
 for [iOS](https://itunes.apple.com/de/app/locative/id725198453?mt=8) or [Android](https://play.google.com/store/apps/details?id=io.locative.app&hl=de) can be used to update the device location with the new
  GET requests _enter_ and _exit_. See API documentation below for details.
 
-As of revision 0.7.5 all API calls return the current device location on
+With revision 0.7.5 all API calls return the current device location on
 success.
 ```json
 {
@@ -149,17 +157,42 @@ when $phone.distanceToHome is lower than 500 then log "almost at home"
 ...
 ```
 
-Overlapping locations
----------------------
-As of Rev. 0.4.2 overlapping locations are supported. You can, for
-example, define a location "home" with latitude=0, longitude=0 and
-radius=250m and a location "near home" with the same gps data but a
-radius of 1000m. A distance of 200m will provide the location "home",
-500m give you "near home".
+Device Actions
+--------------
+
+**Suspend/resume iCloud updates for iOS devices**
+```
+WHEN [button pressed] THEN suspend <iOSDevice>
+WHEN [button pressed] THEN resume <iOSDevice> [with "<verify>"]
+```
+where "verify" is the next valid verification code for 2FA
 
 
-Use xLinks to open maps for device location (experimental)
-----------------------------------------------------------
+**Simulate device movement**
+```
+WHEN [button pressed] THEN set location of <phone> to "address"
+```
+where "address" is one of your location tags or any valid expression for
+a Google Maps Geocoding API lookup
+
+
+Device Predicates (planned)
+---------------------------
+
+In addition to device attributes predicates native predicates should improve
+and simplify location based rules, as in
+```
+WHEN distance to "location" is less than 500 meter" THEN ...
+WHEN route to "location" by car is less than 500 meter THEN ...
+WHEN eta to "location" on food is less than 5 minutes THEN ...
+
+```
+Predicates will be available with the next milestone release 1.0.0
+
+
+
+Use xLinks to open maps for device location (deprecated)
+--------------------------------------------------------
 As of Rev. 0.4.0 you can define URL templates to open Google Maps or
 Open Street Map for the current device location:
 
@@ -171,7 +204,9 @@ Open Street Map for the current device location:
 ```
 
 Limitations: The values are not updated in the frontend. You have to
-manually refresh the browser window.
+manually refresh the browser window. Due to this linḿitations, the xLink
+feature will be removed. Use the pimatic-iframe based approach available
+since Rev. 0.8.0.
 
 
 Plugin configuration
@@ -189,7 +224,7 @@ tags
           "name": "office",
           "tag": "Office",
           "ssids": [
-            "DIGITEC-GAST"
+            "DIGITEC"
           ],
           "gps": {
             "latitude": 53.5544809,
@@ -284,6 +319,48 @@ Device configuration option details
         description: "Radius (m) for GPS mapping"
         type: "number"
         default: 250
+      gpsLimit:
+        description: "Log new position only if significantly moved"
+        type: "number"
+        default: 250
+      googleMaps:
+        description: "Optional Google Maps API options"
+        type: "object"
+        default: {}
+        properties:
+          key:
+            description: "Optional Google API key to be used in the iFrame URL"
+            type: "string"
+            default: ""
+          geocoding:
+            description: "Lookup location for address"
+            type: "boolean"
+            default: true
+          reverseGeocoding:
+            description: "Lookup address for location"
+            type: "boolean"
+            default: true
+      iFrame:
+        description: "iFrame configuration"
+        type: "object"
+        default: {}
+        properties:
+          id:
+            description: "iFrame device id"
+            type: "string"
+            default: ""
+          url:
+            description: "iFrame URL template"
+            type: "string"
+            default: "https://www.google.com/maps/embed/v1/place?key={key}&q={address}"
+          enabled:
+            description: "Enable iFrame updates"
+            type: "boolean"
+            default: false
+          switch:
+            description: "Optional enable switch device id"
+            type: "string"
+            default: ""
       xLinkTemplate:
         description: "URL template"
         type: "string"
@@ -302,10 +379,18 @@ Device configuration option details
         description: "iCloud password"
         type: "string"
         default: ""
+      iCloud2FA:
+        description: "iCloud 2FA"
+        type: "boolean"
+        default: false
       iCloudVerify:
         description: "iCloud 2FA verification code"
         type: "string"
         default: "000000"
+      iCloudVerifyVariable:
+        description: "Name of the $variable providing the code"
+        type: "string"
+        default: ""
       iCloudDevice:
         description: "iCloud device name"
         type: "string"
@@ -322,6 +407,10 @@ Device configuration option details
         description: "iCloud updates suspended"
         type: "boolean"
         default: false
+      iCloudSwitch:
+        description: "iCloud suspend switch device id"
+        type: "string"
+        default: ""
       iCloudTimezone:
         description: "iCloud client timezone"
         type: "string"
@@ -338,20 +427,60 @@ Device configuration option details
         description: "Log new position only if significantly moved"
         type: "number"
         default: 250
+      googleMaps:
+        description: "Optional Google Maps API options"
+        type: "object"
+        default: {}
+        properties:
+          key:
+            description: "Optional Google API key to be used in the iFrame URL"
+            type: "string"
+            default: ""
+          geocoding:
+            description: "Lookup location for address"
+            type: "boolean"
+            default: true
+          reverseGeocoding:
+            description: "Lookup address for location"
+            type: "boolean"
+            default: true
+      iFrame:
+        description: "iFrame configuration"
+        type: "object"
+        default: {}
+        properties:
+          id:
+            description: "iFrame device id"
+            type: "string"
+            default: ""
+          url:
+            description: "iFrame URL template"
+            type: "string"
+            default: "https://www.google.com/maps/embed/v1/place?key={key}&q={address}"
+          enabled:
+            description: "Enable iFrame updates"
+            type: "boolean"
+            default: false
+          switch:
+            description: "Optional enable switch device id"
+            type: "string"
+            default: ""
       xLinkTemplate:
         description: "URL template"
         type: "string"
         default: "https://www.google.com/maps?q={latitude}+{longitude}"
-
 ```
 
 Attributes
 ----------
 
-The following attributes are available and can be used for logging or
-displayed in the frontend.
+The following attributes are available and can be used in rules, for logging
+or may be displayed in the frontend. Another set of attributes named
+**_distanceTo\<Tag\>_** is created dynamically and updated by location changes.
+
 
 ```coffeescript
+    attributes:
       timeSpec:
         label: "Update time spec"
         description: "Date and time of the last location update."
@@ -361,14 +490,14 @@ displayed in the frontend.
         displaySparkline: false
         hidden: false
         discrete: true
-      source:
-        label: "Location source"
-        description: "Source of location information: LOC, GPS, NET, TAG, SSID, ..."
-        type: t.string
+      timeStamp:
+        label: "Update time stamp"
+        description: "Date and time of the last location update."
+        type: t.number
         unit: ""
-        acronym: 'SRC'
+        acronym: 'UTC'
         displaySparkline: false
-        hidden: false
+        hidden: true
         discrete: true
       tag:
         description: "Current location of the device"
@@ -378,6 +507,22 @@ displayed in the frontend.
         displaySparkline: false
         hidden: false
         discrete: true
+      location:
+        description: "Alias for the tag attribute"
+        type: t.string
+        unit: ""
+        acronym: 'LOC'
+        displaySparkline: false
+        hidden: true
+        discrete: true
+      position:
+        description: "Alias for the tag attribute"
+        type: t.string
+        unit: ""
+        acronym: 'LOC'
+        displaySparkline: false
+        hidden: true
+        discrete: true
       previousTag:
         description: "Previous location of the device"
         type: t.string
@@ -385,6 +530,31 @@ displayed in the frontend.
         acronym: 'PREV'
         displaySparkline: false
         hidden: true
+        discrete: true
+      previousLocation:
+        description: "Alias for the previous tag attribute"
+        type: t.string
+        unit: ""
+        acronym: 'PREV'
+        displaySparkline: false
+        hidden: true
+        discrete: true
+      previousPosition:
+        description: "Alias for the previous tag attribute"
+        type: t.string
+        unit: ""
+        acronym: 'PREV'
+        displaySparkline: false
+        hidden: true
+        discrete: true
+      source:
+        label: "Location source"
+        description: "Source of location information: LOC, GPS, NET, TAG, SSID, ..."
+        type: t.string
+        unit: ""
+        acronym: 'SRC'
+        displaySparkline: false
+        hidden: false
         discrete: true
       type:
         label: "Type"
@@ -442,13 +612,14 @@ displayed in the frontend.
         acronym: 'GPS'
         displaySparkline: false
         hidden: true
-      suspended:
-        label: "Suspended"
-        description: "iCloud updates suspended"
-        type: t.boolean
-        acronym: 'OFF'
+      address:
+        label: "Address"
+        description: "Address of device"
+        type: t.string
+        unit: ""
+        acronym: 'ADDR'
         displaySparkline: false
-        hidden: true        
+        hidden: false
 ```
 
 Many of the attributes are volatile in nature. Adjust database logging
@@ -508,6 +679,7 @@ where <host> is the domain name/address of your pimatic instance,
 |updatePhone|serial,ssid,ssid,...|Tasker vasrs|see [documentation](https://github.com/bstrebel/pimatic-phone/blob/master/assets/TaskerSetup.md) for details|
 |fetchLocation|n/a|n/a|return current device location|
 |fetchPreviousLocation|n/a|n/a| return the previous location|
+|updateDeviceConfig|n/a|n/a|check and update location settings|
 |suspend|flag|true/false, on/off|suspend location updates, iOS devices only!|
 |disableUpdates|n/a|n/a|logout and disable updates for iOS devices with 2FA|
 |enableUpdates|code (verification)|000000|login and enable updates for iOS devices with 2FA|
@@ -518,7 +690,7 @@ Example:
     http://localhost:8080/api/device/<IPHONE>/enter?tag=Home
 ```
 
-Available API call os of Rev. 0.7.5
+Available API call os of Rev. 0.9.5
 
 ```coffeescript
       update:
@@ -543,6 +715,11 @@ Available API call os of Rev. 0.7.5
         description: "Update location tag of device"
         params:
           tag:
+            type: t.string
+      updateAddress:
+        description: "Update address of device"
+        params:
+          address:
             type: t.string
       enter:
         description: "Enter geofence"
@@ -582,23 +759,12 @@ Available API call os of Rev. 0.7.5
             type: t.number
           updateAddress:
             type: t.number
-      suspend:
-        description: "Suspend iCloud location updates"
-        params:
-          flag:
-            type: t.string
       fetchLocation:
         description: "Return current device location"
       fetchPreviousLocation:
         description: "Return previous device location"
-      disableUpdates:
-        description: "Disable iCloud location updates"
-      enableUpdates:
-        description: "Enable iCloud location updates"
-        params:
-          code:
-            description: "iCloud 2FA verification code code"
-            type: t.string
+      updatePluginConfig:
+        description: "Update location settings via geocoding lookups"
 ```
 
 TODO: detailed description of calls and params, curl examples, tasker
