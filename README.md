@@ -56,8 +56,9 @@ generate an API key.
     two factor authentication activated. See 2FA remarks (see below).
     As of Rev. 0.8.0 you can define a DummySwitch to enable/disable
     iCloud updates through the mobile frontend and since Rev. 0.8.5 you can use
-    the new actions "suspend <phone device>" and "resume <phone device>" to
-    control updates through the iCloud interface.
+    the new actions "suspend \<phone device\>" and "resume \<phone device\>" to
+    control updates through the iCloud interface. See [Device Actions](#device-actions)
+    for details.
 
 <img src="https://raw.githubusercontent.com/bstrebel/pimatic-phone/master/screenshots/switch.png" width="480">
 
@@ -188,7 +189,6 @@ WHEN eta to "location" on food is less than 5 minutes THEN ...
 
 ```
 Predicates will be available with the next milestone release 1.0.0
-
 
 
 Use xLinks to open maps for device location (deprecated)
