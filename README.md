@@ -784,6 +784,10 @@ Roadmap
 Changelog
 ---------
 
+v0.9.6
+
+- bugfix alias attribute updates [[#3](https://github.com/bstrebel/pimatic-phone/issues/3)]
+
 v0.9.5
 
 - bugfix GPS validation
