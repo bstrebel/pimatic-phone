@@ -761,9 +761,20 @@ module.exports = (env) =>
         @_updateAddress()
         .then( (address) =>
           @debug("Updating device attributes [force=#{force}]")
-          for key, value of @.attributes
-            @debug("* #{key}=#{@['_'+ key]}") if key isnt '__proto__' and @['_'+ key]?
-            @emit key, @['_'+ key] if key isnt '__proto__' and @['_'+ key]?
+          for key of @.attributes
+            if key isnt '__proto__'
+              value = null
+              if key in ['tag', 'location', 'position']
+                value = @_tag
+                @debug("* tag/location/position=#{value}") if key == 'tag'
+              else if key in ['previousTag', 'previousLocation', 'previousPosition']
+                value = @_last_tag
+                @debug("* previousTag/Location/Position=#{value}") if key == 'previousTag'
+              else if '_'+ key of @
+                value = @['_'+ key]
+                @debug("* #{key}=#{value}")
+              if value?
+                @emit key, value
           return Promise.resolve(@_locationResponse())
         )
         .catch( (err) => return Promise.reject(err) )
