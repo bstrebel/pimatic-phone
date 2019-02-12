@@ -7,7 +7,7 @@ in the actions part.
 
 module.exports = (env) ->
 
-  __ = env.require("i18n").__
+  __ = env.require("i18n-pimatic").__
   Promise = env.require 'bluebird'
   assert = env.require 'cassert'
   types = env.require('decl-api').types
